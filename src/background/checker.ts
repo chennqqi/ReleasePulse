@@ -36,20 +36,21 @@ async function checkReleaseForWatch(
     return { newId: watch.lastSeenReleaseId, notifications: [] }
   }
 
-  const latestId = releases[0].id.toString()
+  const latestId = releases[0].id
   const lastSeenId = watch.lastSeenReleaseId
 
   if (!lastSeenId) {
-    return { newId: latestId, notifications: [] }
+    return { newId: latestId.toString(), notifications: [] }
   }
 
-  const newReleases = releases.filter((r) => r.id.toString() > lastSeenId)
+  const lastSeenNum = Number(lastSeenId)
+  const newReleases = releases.filter((r) => r.id > lastSeenNum)
   if (newReleases.length === 0) {
-    return { newId: latestId, notifications: [] }
+    return { newId: latestId.toString(), notifications: [] }
   }
 
   return {
-    newId: latestId,
+    newId: latestId.toString(),
     notifications: newReleases.map((r) => ({
       type: 'github_release' as const,
       title: t('notif.newRelease', { label: watch.label }),
@@ -75,7 +76,10 @@ async function checkTagForWatch(
     return { newId: latestSha, notifications: [] }
   }
 
-  const newTags = tags.filter((t) => t.object.sha > lastSeenSha)
+  // Tags are ordered newest-first; find the index of the last seen SHA
+  // and treat all tags before it as new.
+  const lastSeenIdx = tags.findIndex((tag) => tag.object.sha === lastSeenSha)
+  const newTags = lastSeenIdx === -1 ? tags : tags.slice(0, lastSeenIdx)
   if (newTags.length === 0) {
     return { newId: latestSha, notifications: [] }
   }

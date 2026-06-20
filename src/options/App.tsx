@@ -20,14 +20,13 @@ import {
 type OptionsPage = 'watching' | 'settings' | 'about'
 type AddMode = 'repo' | 'issue'
 
-const NAV_ITEMS: { id: OptionsPage; label: string; icon: typeof Bell }[] = [
-  { id: 'watching', label: t('options.nav.watching'), icon: Bell },
-  { id: 'settings', label: t('options.nav.settings'), icon: Key },
-  { id: 'about', label: t('options.nav.about'), icon: Info },
-]
-
 /** Options page with sidebar navigation. */
 export default function App() {
+  const navItems: { id: OptionsPage; label: string; icon: typeof Bell }[] = [
+    { id: 'watching', label: t('options.nav.watching'), icon: Bell },
+    { id: 'settings', label: t('options.nav.settings'), icon: Key },
+    { id: 'about', label: t('options.nav.about'), icon: Info },
+  ]
   const {
     repoWatches, issueSubscriptions, settings, loading,
     loadData, upsertWatch, updateWatchEvents, removeWatch, toggleWatch,
@@ -101,7 +100,7 @@ export default function App() {
           <span className="font-semibold text-gray-900">ReleasePulse</span>
         </div>
         <nav className="p-3 space-y-1">
-          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+          {navItems.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setPage(id)}
@@ -382,6 +381,18 @@ export default function App() {
                 <li>• {t('options.about.feature2')}</li>
                 <li>• {t('options.about.feature3')}</li>
               </ul>
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <a
+                  href="https://github.com/chennqqi/ReleasePulse"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700"
+                >
+                  <Github size={14} />
+                  github.com/chennqqi/ReleasePulse
+                  <ExternalLink size={12} className="text-gray-400" />
+                </a>
+              </div>
             </section>
           </div>
         )}
