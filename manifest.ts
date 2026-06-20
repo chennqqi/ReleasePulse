@@ -25,4 +25,17 @@ export const manifest = defineManifest({
     '48': 'src/assets/icon-48.png',
     '128': 'src/assets/icon-128.png',
   },
+  content_scripts: [
+    {
+      matches: ['https://github.com/*/*'],
+      js: ['src/content/index.ts'],
+      run_at: 'document_idle',
+    },
+  ],
+  web_accessible_resources: [
+    {
+      resources: ['src/assets/icon-16.png'],
+      matches: ['https://github.com/*'],
+    },
+  ],
 })

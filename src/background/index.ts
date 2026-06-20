@@ -1,5 +1,6 @@
 import { setupAlarm, runCheckCycle, setupNotificationHandler } from './notifier'
-import { getSettings } from '@/lib/storage'
+import { getSettings, getSubscriptions, addSubscription, generateId } from '@/lib/storage'
+import type { SubscriptionType, IssueEvent, Subscription } from '@/types'
 
 /** Initialize the background service worker. */
 async function init(): Promise<void> {
@@ -41,6 +42,51 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     import('@/lib/storage').then(({ getUnreadCount }) => {
       getUnreadCount().then((count) => sendResponse({ count }))
     })
+    return true
+  }
+
+  if (message.type === 'CHECK_SUBSCRIPTION') {
+    const { subscriptionType, owner, repo, issueNumber } = message.payload
+    getSubscriptions().then((subs) => {
+      const exists = subs.some(
+        (s) =>
+          s.type === subscriptionType &&
+          s.owner === owner &&
+          s.repo === repo &&
+          (subscriptionType !== 'github_issue' || s.issueNumber === issueNumber),
+      )
+      sendResponse({ exists })
+    })
+    return true
+  }
+
+  if (message.type === 'ADD_SUBSCRIPTION') {
+    const { subscriptionType, owner, repo, issueNumber, issueEvents } = message.payload as {
+      subscriptionType: SubscriptionType
+      owner: string
+      repo: string
+      issueNumber?: number
+      issueEvents?: IssueEvent[]
+    }
+    const label = issueNumber
+      ? `${owner}/${repo}#${issueNumber}`
+      : `${owner}/${repo}`
+    const sub: Subscription = {
+      id: generateId(),
+      type: subscriptionType,
+      owner,
+      repo,
+      issueNumber,
+      label,
+      lastCheckedAt: null,
+      lastSeenId: null,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      issueEvents,
+    }
+    addSubscription(sub)
+      .then(() => sendResponse({ success: true }))
+      .catch((err) => sendResponse({ success: false, error: String(err) }))
     return true
   }
 })
