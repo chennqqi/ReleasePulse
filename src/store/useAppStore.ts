@@ -60,6 +60,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     lastSyncAt: null,
     apiRemaining: null,
     language: 'auto',
+    syncError: null,
   },
   loading: false,
 

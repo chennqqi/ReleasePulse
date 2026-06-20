@@ -4,6 +4,9 @@ export type SubscriptionType = 'github_release' | 'github_tag' | 'github_issue'
 /** Issue state events to monitor. */
 export type IssueEvent = 'closed' | 'reopened' | 'labeled' | 'unlabeled'
 
+/** Last sync error category shown in the UI. */
+export type SyncErrorCode = 'rate_limit' | 'auth' | 'not_found' | 'generic' | null
+
 /** Repo-level watch combining release and tag events. */
 export interface RepoWatch {
   id: string
@@ -70,6 +73,8 @@ export interface Settings {
   apiRemaining: number | null
   /** UI language override, or 'auto' to follow browser language. */
   language: 'auto' | 'en' | 'zh-CN'
+  /** Last sync error code, cleared after a successful cycle. */
+  syncError: SyncErrorCode
 }
 
 /** Default settings when none are stored. */
@@ -81,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastSyncAt: null,
   apiRemaining: null,
   language: 'auto',
+  syncError: null,
 }
 
 /** GitHub API: Release response (partial). */

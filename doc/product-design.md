@@ -301,7 +301,7 @@ interface Settings {
 - [ ] GitLab / Bitbucket 订阅源
 - [ ] 预发布过滤（仅 stable release）
 - [ ] 订阅导入/导出
-- [ ] Firefox 支持
+- [x] Firefox 支持
 
 ---
 

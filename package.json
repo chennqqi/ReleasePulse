@@ -1,13 +1,22 @@
 {
   "name": "release-pulse",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser extension for subscribing to software release notifications (GitHub releases, tags, issues)",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/patch-firefox-manifest.mjs",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "firefox:lint": "node scripts/verify-firefox.mjs",
+    "firefox:run": "web-ext run --source-dir dist",
+    "firefox:verify": "npm run build && npm run firefox:lint",
+    "firefox:zip": "node scripts/pack-store-zip.mjs firefox",
+    "chrome:zip": "node scripts/pack-store-zip.mjs chrome",
+    "release:pack": "node scripts/build-release.mjs",
+    "release:verify": "node scripts/check-version-sync.mjs && npm run test && npm run build && npm run firefox:lint"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -26,6 +35,8 @@
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
     "typescript": "^5.5.3",
-    "vite": "^5.3.4"
+    "vite": "^5.3.4",
+    "vitest": "^2.1.8",
+    "web-ext": "^8.10.0"
   }
 }

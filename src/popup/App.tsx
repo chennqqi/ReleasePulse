@@ -10,6 +10,7 @@ import {
 import { formatRelativeTime, getTypeColor, getTypeLabel, cn } from '@/lib/utils'
 import { Logo } from '@/components/Logo'
 import { StatusBar } from '@/components/StatusBar'
+import { SyncAlert } from '@/components/SyncAlert'
 import { t } from '@/i18n'
 import type { SubscriptionType } from '@/types'
 import {
@@ -170,6 +171,10 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {settings.syncError && (
+        <SyncAlert syncError={settings.syncError} compact className="border-b border-amber-200" />
+      )}
 
       {showOnboarding ? (
         <div className="flex-1 px-4 py-5">

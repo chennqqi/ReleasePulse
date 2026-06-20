@@ -12,7 +12,8 @@ import {
 import type { IssueEvent, Subscription } from '@/types'
 import { migrateIfNeeded } from '@/lib/migrate'
 import { setLocale, detectLocale, type Locale } from '@/i18n'
-import { fetchReleases, fetchTags, fetchIssue, fetchIssueEvents } from '@/lib/github-api'
+import { fetchReleases, fetchTags, fetchIssueEvents } from '@/lib/github-api'
+import { getLatestEventTimestamp } from '@/lib/issue-events'
 
 /** Initialize i18n locale from stored settings. */
 async function initLocale(): Promise<void> {
@@ -106,12 +107,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // Fetch current issue state as baseline to avoid historical notifications
         try {
           const settings = await getSettings()
-          const issue = await fetchIssue(owner, repo, issueNumber, settings.githubToken)
-          const events = await fetchIssueEvents(owner, repo, issueNumber, settings.githubToken, 20)
-          const recentEvents = events.slice(-10)
-          const stateHash = issue.state + ':' + issue.updated_at + ':' +
-            recentEvents.map((e) => e.event + ':' + e.created_at).join(',')
-          await updateIssueSubscription(sub.id, { lastSeenId: stateHash, lastCheckedAt: new Date().toISOString() })
+          const events = await fetchIssueEvents(owner, repo, issueNumber, settings.githubToken, 30)
+          const baseline = getLatestEventTimestamp(events) ?? new Date().toISOString()
+          await updateIssueSubscription(sub.id, {
+            lastSeenId: baseline,
+            lastCheckedAt: new Date().toISOString(),
+          })
         } catch (err) {
           console.error('[ReleasePulse] Failed to set issue baseline:', err)
         }

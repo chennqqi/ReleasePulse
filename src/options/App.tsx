@@ -10,6 +10,8 @@ import {
 } from '@/lib/subscription-utils'
 import { formatRelativeTime, getTypeColor, getTypeLabel, cn } from '@/lib/utils'
 import { Logo } from '@/components/Logo'
+import { SyncAlert } from '@/components/SyncAlert'
+import { APP_VERSION } from '@/version'
 import { t, getSupportedLocales } from '@/i18n'
 import type { IssueEvent, Settings } from '@/types'
 import {
@@ -295,10 +297,21 @@ export default function App() {
         {page === 'settings' && (
           <div className="space-y-6">
             <h1 className="text-xl font-semibold text-gray-900">{t('options.settings.title')}</h1>
-            <div className="bg-brand-50 border border-brand-200 rounded-lg px-4 py-3 text-sm text-brand-800 flex items-center justify-between">
+            <SyncAlert syncError={settings.syncError} />
+            <div className={cn(
+              'rounded-lg px-4 py-3 text-sm flex items-center justify-between border',
+              settings.syncError
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-brand-50 border-brand-200 text-brand-800',
+            )}>
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                {formatSyncStatus(settings.lastSyncAt)}
+                <span className={cn(
+                  'w-2 h-2 rounded-full',
+                  settings.syncError ? 'bg-amber-500' : 'bg-green-500',
+                )} />
+                {settings.syncError
+                  ? t(`error.${settings.syncError}`)
+                  : formatSyncStatus(settings.lastSyncAt)}
               </span>
               <span>{formatApiRemaining(settings.apiRemaining, settings.githubToken)}</span>
             </div>
@@ -370,7 +383,7 @@ export default function App() {
                 <Logo size={40} />
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">ReleasePulse</h2>
-                  <p className="text-sm text-gray-500">{t('app.version', { version: '0.1.0' })}</p>
+                  <p className="text-sm text-gray-500">{t('app.version', { version: APP_VERSION })}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed">
@@ -381,17 +394,28 @@ export default function App() {
                 <li>• {t('options.about.feature2')}</li>
                 <li>• {t('options.about.feature3')}</li>
               </ul>
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                 <a
-                  href="https://github.com/chennqqi/ReleasePulse"
+                  href="https://github.com/chennqqi/ReleasePulse/blob/main/PRIVACY.md"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700"
+                  className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
                 >
-                  <Github size={14} />
-                  github.com/chennqqi/ReleasePulse
+                  {t('options.about.privacy')}
                   <ExternalLink size={12} className="text-gray-400" />
                 </a>
+                <div>
+                  <a
+                    href="https://github.com/chennqqi/ReleasePulse"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700"
+                  >
+                    <Github size={14} />
+                    github.com/chennqqi/ReleasePulse
+                    <ExternalLink size={12} className="text-gray-400" />
+                  </a>
+                </div>
               </div>
             </section>
           </div>

@@ -14,6 +14,17 @@ export class RateLimitError extends Error {
   }
 }
 
+/** Typed GitHub API error with HTTP status code. */
+export class GithubApiError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'GithubApiError'
+    this.status = status
+  }
+}
+
 /** Build headers for GitHub API requests. */
 function buildHeaders(token: string): HeadersInit {
   const headers: Record<string, string> = {
@@ -26,7 +37,7 @@ function buildHeaders(token: string): HeadersInit {
   return headers
 }
 
-/** Handle GitHub API response, including rate limit errors. */
+/** Handle GitHub API response, including rate limit and auth errors. */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 403) {
     const remaining = response.headers.get('x-ratelimit-remaining')
@@ -34,9 +45,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
       throw new RateLimitError('GitHub API rate limit exceeded')
     }
   }
+  if (response.status === 401) {
+    throw new GithubApiError(401, 'GitHub API authentication failed — check your token')
+  }
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`GitHub API error ${response.status}: ${text}`)
+    throw new GithubApiError(response.status, `GitHub API error ${response.status}: ${text}`)
   }
   return response.json() as Promise<T>
 }

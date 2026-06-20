@@ -15,6 +15,8 @@ import {
   createIssueNotificationRecords,
 } from './checker'
 import { RateLimitError, fetchRateLimit } from '@/lib/github-api'
+import { classifySyncError } from '@/lib/sync-error'
+import { showDesktopNotification, updateActionBadge } from '@/lib/browser'
 
 const ALARM_NAME = 'release-pulse-poll'
 
@@ -47,6 +49,7 @@ export async function runCheckCycle(): Promise<void> {
   }
 
   let totalNewNotifications = 0
+  let syncError: typeof settings.syncError = null
 
   for (const watch of enabledWatches) {
     try {
@@ -65,86 +68,80 @@ export async function runCheckCycle(): Promise<void> {
 
         if (settings.desktopNotifications && added > 0) {
           for (const record of records.slice(0, added)) {
-            chrome.notifications.create(record.id, {
-              type: 'basic',
-              iconUrl: 'src/assets/icon-128.png',
+            showDesktopNotification(record.id, {
               title: record.title,
               message: record.body,
-              priority: 2,
             })
           }
         }
       }
     } catch (err) {
       if (err instanceof RateLimitError) {
+        syncError = 'rate_limit'
         console.error('[ReleasePulse] Rate limit hit, stopping cycle')
         break
       }
+      syncError = classifySyncError(err)
       console.error(`[ReleasePulse] Error checking ${watch.label}:`, err)
     }
   }
 
-  for (const sub of enabledIssues) {
-    try {
-      const result = await checkIssueSubscription(sub, settings.githubToken)
+  if (syncError !== 'rate_limit') {
+    for (const sub of enabledIssues) {
+      try {
+        const result = await checkIssueSubscription(sub, settings.githubToken)
 
-      if (result.hasUpdate || result.newId !== sub.lastSeenId) {
         await updateIssueSubscription(sub.id, {
           lastSeenId: result.newId,
           lastCheckedAt: new Date().toISOString(),
         })
-      } else {
-        await updateIssueSubscription(sub.id, {
-          lastCheckedAt: new Date().toISOString(),
-        })
-      }
 
-      if (result.notifications.length > 0) {
-        const records = createIssueNotificationRecords(sub.id, result)
-        const added = await addNotifications(records)
-        totalNewNotifications += added
+        if (result.notifications.length > 0) {
+          const records = createIssueNotificationRecords(sub.id, result)
+          const added = await addNotifications(records)
+          totalNewNotifications += added
 
-        if (settings.desktopNotifications && added > 0) {
-          for (const record of records.slice(0, added)) {
-            chrome.notifications.create(record.id, {
-              type: 'basic',
-              iconUrl: 'src/assets/icon-128.png',
-              title: record.title,
-              message: record.body,
-              priority: 2,
-            })
+          if (settings.desktopNotifications && added > 0) {
+            for (const record of records.slice(0, added)) {
+              showDesktopNotification(record.id, {
+                title: record.title,
+                message: record.body,
+              })
+            }
           }
         }
+      } catch (err) {
+        if (err instanceof RateLimitError) {
+          syncError = 'rate_limit'
+          console.error('[ReleasePulse] Rate limit hit, stopping cycle')
+          break
+        }
+        syncError = classifySyncError(err)
+        console.error(`[ReleasePulse] Error checking ${sub.label}:`, err)
       }
-    } catch (err) {
-      if (err instanceof RateLimitError) {
-        console.error('[ReleasePulse] Rate limit hit, stopping cycle')
-        break
-      }
-      console.error(`[ReleasePulse] Error checking ${sub.label}:`, err)
     }
   }
 
   const unreadCount = await getUnreadCount()
-  const badgeText = unreadCount > 0 ? unreadCount.toString() : ''
-  const badgeColor = unreadCount > 0 ? '#4338ca' : '#6b7280'
-  chrome.action.setBadgeText({ text: badgeText })
-  chrome.action.setBadgeBackgroundColor({ color: badgeColor })
+  updateActionBadge(unreadCount)
+
+  const patch: Partial<typeof settings> = {
+    lastSyncAt: new Date().toISOString(),
+    syncError,
+  }
 
   try {
     const rateLimit = await fetchRateLimit(settings.githubToken)
-    await saveSettings({
-      ...settings,
-      lastSyncAt: new Date().toISOString(),
-      apiRemaining: rateLimit.remaining,
-    })
+    patch.apiRemaining = rateLimit.remaining
   } catch (err) {
     console.error('[ReleasePulse] Failed to update sync status:', err)
-    await saveSettings({
-      ...settings,
-      lastSyncAt: new Date().toISOString(),
-    })
+    if (!syncError) {
+      syncError = classifySyncError(err)
+      patch.syncError = syncError
+    }
   }
+
+  await saveSettings({ ...settings, ...patch })
 
   console.log(`[ReleasePulse] Check cycle complete: ${totalNewNotifications} new notifications`)
 }

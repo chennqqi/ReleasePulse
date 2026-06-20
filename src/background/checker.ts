@@ -1,5 +1,6 @@
-import type { RepoWatch, Subscription, RepoWatchCheckResult, CheckResult, NotificationRecord } from '@/types'
+import type { RepoWatch, Subscription, RepoWatchCheckResult, CheckResult, NotificationRecord, IssueEvent } from '@/types'
 import { fetchReleases, fetchTags, fetchIssue, fetchIssueEvents } from '@/lib/github-api'
+import { findNewMonitoredEvents, getLatestEventTimestamp } from '@/lib/issue-events'
 import { generateId } from '@/lib/storage'
 import { t } from '@/i18n'
 
@@ -106,32 +107,22 @@ export async function checkIssueSubscription(
   return checkIssue(sub, token)
 }
 
-/** Check for issue state changes. */
+/** Check for issue state changes using incremental event timestamps. */
 async function checkIssue(sub: Subscription, token: string): Promise<CheckResult> {
   if (!sub.issueNumber) {
     return { hasUpdate: false, newId: sub.lastSeenId ?? '', notifications: [] }
   }
 
   const issue = await fetchIssue(sub.owner, sub.repo, sub.issueNumber, token)
-  const events = await fetchIssueEvents(sub.owner, sub.repo, sub.issueNumber, token, 20)
+  const events = await fetchIssueEvents(sub.owner, sub.repo, sub.issueNumber, token, 30)
+  const monitored: IssueEvent[] = sub.issueEvents ?? ['closed', 'reopened']
 
-  const recentEvents = events.slice(-10)
-  const stateHash = `${issue.state}:${issue.updated_at}:${recentEvents
-    .map((e) => `${e.event}:${e.created_at}`)
-    .join(',')}`
+  const { newEvents, newCursor } = findNewMonitoredEvents(events, monitored, sub.lastSeenId)
+  const cursor = newCursor ?? sub.lastSeenId ?? getLatestEventTimestamp(events) ?? issue.updated_at
 
-  const lastSeenHash = sub.lastSeenId
-
-  if (!lastSeenHash) {
-    return { hasUpdate: false, newId: stateHash, notifications: [] }
+  if (newEvents.length === 0) {
+    return { hasUpdate: false, newId: cursor, notifications: [] }
   }
-
-  if (stateHash === lastSeenHash) {
-    return { hasUpdate: false, newId: stateHash, notifications: [] }
-  }
-
-  const monitoredEvents: string[] = (sub.issueEvents ?? ['closed', 'reopened']).map(String)
-  const newEvents = recentEvents.filter((e) => monitoredEvents.includes(e.event))
 
   const notifications = newEvents.map((e) => ({
     type: 'github_issue' as const,
@@ -140,7 +131,7 @@ async function checkIssue(sub: Subscription, token: string): Promise<CheckResult
     url: issue.html_url,
   }))
 
-  return { hasUpdate: notifications.length > 0, newId: stateHash, notifications }
+  return { hasUpdate: true, newId: cursor, notifications }
 }
 
 /** Convert repo watch notifications into NotificationRecord objects. */

@@ -102,6 +102,7 @@ export const zhCN = {
   'options.about.feature1': '关注仓库并自定义 Releases 和 Tags 事件',
   'options.about.feature2': '订阅单个 Issue 以获取状态更新',
   'options.about.feature3': '桌面通知与可配置的检查间隔',
+  'options.about.privacy': '隐私政策',
 
   // Status bar
   'status.notSynced': '尚未同步',
@@ -112,6 +113,12 @@ export const zhCN = {
   'status.apiDash': 'API: —',
   'status.apiCount': 'API: {remaining}/{limit}',
   'status.watchCount': '{count} 个关注',
+
+  // Sync errors
+  'error.rate_limit': 'GitHub API 配额已用尽。请添加 Token 或等待下次同步。',
+  'error.auth': 'GitHub 认证失败。请在设置中检查 Personal Access Token。',
+  'error.not_found': '仓库或 Issue 不存在，可能为私有或已删除。',
+  'error.generic': '同步失败。请打开设置查看详情或稍后重试。',
 
   // Content script
   'content.watchWithReleasePulse': 'Watch with ReleasePulse',

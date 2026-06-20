@@ -68,3 +68,36 @@
 - checker 拆分 checkRepoWatch + checkIssueSubscription
 - storage 分为 repoWatches / issueSubscriptions 两个 key
 - UI Add 流程改为 Repository(Issue) + 事件勾选
+
+## 日期: 2026-06-20 — 生产可用性评估
+
+- 功能 MVP 完整，架构 MV3 合理，i18n/迁移/baseline 已具备
+- 阻塞发布：隐私政策、自动化测试、Issue 检测逻辑、商店合规素材
+- 建议：0.1.0 非公开 Beta → 修复 P0 → 1.0.0 上架 Chrome Web Store
+
+## 日期: 2026-06-20 — P0 发布准备完成
+
+- Issue 通知改为 created_at 游标；GitHub API 错误 UI 可见
+- PRIVACY.md + store-listing 文案 + CI workflow 已添加
+- 剩余：商店截图、自动化单元测试、1.0.0 版本号
+
+## 日期: 2026-06-20 — v1.0.0 发布
+
+- 版本 1.0.0；26 个 Vitest 单元测试全部通过
+- 截图已复制到 doc/store-screenshots/，可直接上传 Chrome Web Store
+
+## 日期: 2026-06-20 — Firefox 兼容性
+
+- 结论：未验证、未适配；理论可部分运行，不能宣称正式兼容
+- 缺口：无 gecko.id、@crxjs 面向 Chrome、全用 chrome.*、无 Firefox 测试
+- notifications priority 等为 Chrome 扩展字段；AMO 需 browser_specific_settings
+
+## 日期: 2026-06-20 — Firefox 适配
+
+- manifest 增加 gecko.id + min 136；browser.ts 处理 iconUrl/priority
+- web-ext lint 入 CI；doc/firefox.md 手动验证清单；README Firefox 安装说明
+
+## 日期: 2026-06-20 — 商店发布收尾
+
+- release:pack 一键打包 Chrome/Firefox zip；doc/release-checklist.md 双商店清单
+- manifest gecko data_collection_permissions none；PRIVACY/store-listing 更新

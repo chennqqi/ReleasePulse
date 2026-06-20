@@ -40,3 +40,33 @@
 - Issue 订阅独立存储，Watching 页按仓库分组展示
 - Options 支持在线勾选/取消 Releases、Tags 事件
 - Feed 通知按 Today / Yesterday / Earlier 分组
+
+## 2026-06-20 生产可用性评估
+
+- 结论：可 Beta/侧载发布，尚不满足 Chrome 商店正式 1.0 标准
+- 缺口：无测试、无隐私政策、Issue 通知重复风险、商店素材缺失
+
+## 2026-06-20 P0 发布准备
+
+- 修复 Issue 增量通知（事件时间戳游标，替代 stateHash）
+- API 错误分类 + Popup/Settings 同步错误提示
+- 新增 PRIVACY.md、doc/store-listing.md、GitHub Actions CI
+
+## 2026-06-20 v1.0.0 发布准备
+
+- 版本 bump 至 1.0.0（package.json / manifest / src/version.ts）
+- Vitest 单元测试 26 项（issue-events、github-api、sync-error、subscription-utils）
+- 商店截图整理至 doc/store-screenshots/（来自 data/）
+- README 与 store-listing 更新，直接公开上架流程
+
+## 2026-06-20 Firefox 兼容性咨询
+
+- 询问当前代码是否兼容 Firefox；需评估 MV3、API、构建与 AMO 上架差异
+
+## 2026-06-20 Firefox 适配与验证
+
+- 增加 gecko.id、browser.ts 跨浏览器通知/图标、web-ext lint/CI、doc/firefox.md 验证清单
+
+## 2026-06-20 README 浏览器兼容与 Firefox zip
+
+- Firefox 136+ 测试通过；Chrome/Firefox 商店发布收尾（release:pack、双 zip、release-checklist、AMO data_collection none）

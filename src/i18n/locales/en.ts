@@ -102,6 +102,7 @@ export const en = {
   'options.about.feature1': 'Watch repos with configurable Releases and Tags events',
   'options.about.feature2': 'Subscribe to individual issues for status updates',
   'options.about.feature3': 'Desktop notifications and configurable check interval',
+  'options.about.privacy': 'Privacy Policy',
 
   // Status bar
   'status.notSynced': 'Not synced yet',
@@ -112,6 +113,12 @@ export const en = {
   'status.apiDash': 'API: —',
   'status.apiCount': 'API: {remaining}/{limit}',
   'status.watchCount': '{count} watch(es)',
+
+  // Sync errors
+  'error.rate_limit': 'GitHub API rate limit reached. Add a token or wait before the next sync.',
+  'error.auth': 'GitHub authentication failed. Check your Personal Access Token in Settings.',
+  'error.not_found': 'Repository or issue not found. It may be private or removed.',
+  'error.generic': 'Sync failed. Open Settings for details or try again later.',
 
   // Content script
   'content.watchWithReleasePulse': 'Watch with ReleasePulse',
