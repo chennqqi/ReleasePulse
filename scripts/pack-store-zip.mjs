@@ -2,7 +2,8 @@
  * Pack dist/ into a store-upload zip (manifest.json at archive root, no source maps).
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, unlinkSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const target = process.argv[2]
@@ -45,16 +46,39 @@ if (existsSync(zipPath)) {
   }
 }
 
-run('npx', [
-  'web-ext',
-  'build',
-  '--source-dir',
-  'dist',
-  '--artifacts-dir',
-  artifactsDir,
-  '--filename',
-  zipName,
-  '--overwrite-dest',
-])
+const distDir = join(process.cwd(), 'dist')
+let sourceDir = distDir
+let stagingDir = null
+
+if (target === 'firefox') {
+  stagingDir = mkdtempSync(join(tmpdir(), 'release-pulse-firefox-'))
+  cpSync(distDir, stagingDir, { recursive: true })
+  const stagingManifestPath = join(stagingDir, 'manifest.json')
+  const firefoxManifest = JSON.parse(readFileSync(stagingManifestPath, 'utf8'))
+  if (firefoxManifest.background?.service_worker) {
+    delete firefoxManifest.background.service_worker
+    writeFileSync(stagingManifestPath, `${JSON.stringify(firefoxManifest, null, 2)}\n`)
+    console.log('[pack-store-zip] Removed background.service_worker for Firefox AMO package')
+  }
+  sourceDir = stagingDir
+}
+
+try {
+  run('npx', [
+    'web-ext',
+    'build',
+    '--source-dir',
+    sourceDir,
+    '--artifacts-dir',
+    artifactsDir,
+    '--filename',
+    zipName,
+    '--overwrite-dest',
+  ])
+} finally {
+  if (stagingDir) {
+    rmSync(stagingDir, { recursive: true, force: true })
+  }
+}
 
 console.log(`[pack-store-zip] Created ${join(artifactsDir, zipName)}`)

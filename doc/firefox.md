@@ -1,6 +1,6 @@
 # Firefox support
 
-ReleasePulse targets **Firefox 136+** (Manifest V3 with ES module service worker).
+ReleasePulse targets **Firefox 140+** on desktop and **Firefox for Android 142+** (Manifest V3 with ES module background).
 
 Add-on ID: `release-pulse@chennqqi.github` (see `manifest.ts`).
 
@@ -65,7 +65,7 @@ After loading the temporary add-on:
 
 ## Known differences from Chrome
 
-- Firefox uses `background.scripts` (event page); Chrome uses `background.service_worker` — build adds both via `scripts/patch-firefox-manifest.mjs`
+- Firefox uses `background.scripts` (event page); Chrome uses `background.service_worker` — build keeps both in `dist/` for local cross-browser testing; **`npm run firefox:zip` removes `service_worker`** for AMO upload
 - `priority` on notifications is Chrome-only; omitted on Firefox automatically
 - Notification icons must use `chrome.runtime.getURL()` (handled in `src/lib/browser.ts`)
-- Minimum Firefox **136** because the background script uses `type: "module"`
+- Minimum Firefox **140** (desktop) / **142** (Android) because `data_collection_permissions` requires those versions on AMO

@@ -109,7 +109,12 @@ const BTN_ACTIVE_STYLE = `
 function createButton(label: string, iconUrl: string, active = false): HTMLButtonElement {
   const btn = document.createElement('button')
   btn.style.cssText = active ? BTN_ACTIVE_STYLE : BTN_STYLE
-  btn.innerHTML = `<img src="${iconUrl}" width="14" height="14" alt="ReleasePulse" /> ${label}`
+  const icon = document.createElement('img')
+  icon.src = iconUrl
+  icon.width = 14
+  icon.height = 14
+  icon.alt = 'ReleasePulse'
+  btn.append(icon, document.createTextNode(` ${label}`))
   if (!active) {
     btn.addEventListener('mouseenter', () => {
       btn.style.background = '#eef2ff'

@@ -12,10 +12,15 @@ export const manifest = defineManifest({
   browser_specific_settings: {
     gecko: {
       id: FIREFOX_EXTENSION_ID,
-      strict_min_version: '136.0',
+      // data_collection_permissions requires Firefox desktop 140+ (AMO validation).
+      strict_min_version: '140.0',
       data_collection_permissions: {
         required: ['none'],
       },
+    },
+    gecko_android: {
+      // Same manifest key requires Firefox for Android 142+.
+      strict_min_version: '142.0',
     },
   },
   permissions: ['storage', 'alarms', 'notifications', 'tabs'],
