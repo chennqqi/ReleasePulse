@@ -60,11 +60,11 @@ export async function runCheckCycle(): Promise<void> {
 
       if (result.notifications.length > 0) {
         const records = createRepoWatchNotificationRecords(watch.id, result.notifications)
-        await addNotifications(records)
-        totalNewNotifications += records.length
+        const added = await addNotifications(records)
+        totalNewNotifications += added
 
-        if (settings.desktopNotifications) {
-          for (const record of records) {
+        if (settings.desktopNotifications && added > 0) {
+          for (const record of records.slice(0, added)) {
             chrome.notifications.create(record.id, {
               type: 'basic',
               iconUrl: 'src/assets/icon-128.png',
@@ -101,11 +101,11 @@ export async function runCheckCycle(): Promise<void> {
 
       if (result.notifications.length > 0) {
         const records = createIssueNotificationRecords(sub.id, result)
-        await addNotifications(records)
-        totalNewNotifications += records.length
+        const added = await addNotifications(records)
+        totalNewNotifications += added
 
-        if (settings.desktopNotifications) {
-          for (const record of records) {
+        if (settings.desktopNotifications && added > 0) {
+          for (const record of records.slice(0, added)) {
             chrome.notifications.create(record.id, {
               type: 'basic',
               iconUrl: 'src/assets/icon-128.png',

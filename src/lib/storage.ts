@@ -129,13 +129,17 @@ export async function saveNotifications(notifications: NotificationRecord[]): Pr
   await chrome.storage.local.set({ [NOTIFICATIONS_KEY]: notifications })
 }
 
-/** Add new notification records. */
-export async function addNotifications(newNotifs: NotificationRecord[]): Promise<void> {
-  if (newNotifs.length === 0) return
+/** Add new notification records, skipping duplicates by URL. Returns count of newly added records. */
+export async function addNotifications(newNotifs: NotificationRecord[]): Promise<number> {
+  if (newNotifs.length === 0) return 0
   const existing = await getNotifications()
-  const combined = [...newNotifs, ...existing]
+  const existingUrls = new Set(existing.map((n) => n.url))
+  const deduped = newNotifs.filter((n) => !existingUrls.has(n.url))
+  if (deduped.length === 0) return 0
+  const combined = [...deduped, ...existing]
   const trimmed = combined.slice(0, 200)
   await saveNotifications(trimmed)
+  return deduped.length
 }
 
 /** Mark a notification as read. */
