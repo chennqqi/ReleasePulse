@@ -158,9 +158,11 @@ export async function markAllNotificationsRead(): Promise<void> {
   await saveNotifications(updated)
 }
 
-/** Clear all notifications. */
+/** Clear read notifications, keeping unread ones. */
 export async function clearNotifications(): Promise<void> {
-  await saveNotifications([])
+  const notifs = await getNotifications()
+  const unread = notifs.filter((n) => !n.read)
+  await saveNotifications(unread)
 }
 
 /** Retrieve settings from storage, merged with defaults. */

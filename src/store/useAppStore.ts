@@ -159,7 +159,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   clearAll: async () => {
     await clearNotifications()
-    set({ notifications: [] })
+    const remaining = await getNotifications()
+    set({ notifications: remaining })
   },
 
   updateSettings: async (patch) => {
