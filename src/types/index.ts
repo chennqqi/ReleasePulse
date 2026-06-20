@@ -4,7 +4,24 @@ export type SubscriptionType = 'github_release' | 'github_tag' | 'github_issue'
 /** Issue state events to monitor. */
 export type IssueEvent = 'closed' | 'reopened' | 'labeled' | 'unlabeled'
 
-/** A subscription item tracked by the extension. */
+/** Repo-level watch combining release and tag events. */
+export interface RepoWatch {
+  id: string
+  owner: string
+  repo: string
+  label: string
+  events: {
+    releases: boolean
+    tags: boolean
+  }
+  lastCheckedAt: string | null
+  lastSeenReleaseId: string | null
+  lastSeenTagSha: string | null
+  enabled: boolean
+  createdAt: string
+}
+
+/** An issue subscription item tracked by the extension. */
 export interface Subscription {
   id: string
   type: SubscriptionType
@@ -45,6 +62,12 @@ export interface Settings {
   pollIntervalMinutes: number
   /** Whether desktop notifications are enabled. */
   desktopNotifications: boolean
+  /** Whether the first-run onboarding has been completed. */
+  onboardingCompleted: boolean
+  /** ISO timestamp of the last successful sync cycle. */
+  lastSyncAt: string | null
+  /** Remaining GitHub API requests in the current window. */
+  apiRemaining: number | null
 }
 
 /** Default settings when none are stored. */
@@ -52,6 +75,9 @@ export const DEFAULT_SETTINGS: Settings = {
   githubToken: '',
   pollIntervalMinutes: 15,
   desktopNotifications: true,
+  onboardingCompleted: false,
+  lastSyncAt: null,
+  apiRemaining: null,
 }
 
 /** GitHub API: Release response (partial). */
@@ -87,6 +113,13 @@ export interface GithubIssue {
   html_url: string
   updated_at: string
   labels: { name: string }[]
+}
+
+/** Result of checking a repo watch. */
+export interface RepoWatchCheckResult {
+  lastSeenReleaseId: string | null
+  lastSeenTagSha: string | null
+  notifications: Omit<NotificationRecord, 'id' | 'subscriptionId' | 'read' | 'createdAt'>[]
 }
 
 /** Result of a subscription check. */

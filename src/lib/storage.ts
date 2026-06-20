@@ -1,7 +1,9 @@
-import type { Subscription, NotificationRecord, Settings } from '@/types'
+import type { RepoWatch, Subscription, NotificationRecord, Settings } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
+import { migrateIfNeeded } from './migrate'
 
-const SUBSCRIPTIONS_KEY = 'subscriptions'
+const REPO_WATCHES_KEY = 'repoWatches'
+const ISSUE_SUBS_KEY = 'issueSubscriptions'
 const NOTIFICATIONS_KEY = 'notifications'
 const SETTINGS_KEY = 'settings'
 
@@ -10,41 +12,110 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-/** Retrieve all subscriptions from storage. */
-export async function getSubscriptions(): Promise<Subscription[]> {
-  const result = await chrome.storage.local.get(SUBSCRIPTIONS_KEY)
-  return (result[SUBSCRIPTIONS_KEY] as Subscription[]) ?? []
+/** Retrieve all repo watches from storage. */
+export async function getRepoWatches(): Promise<RepoWatch[]> {
+  await migrateIfNeeded()
+  const result = await chrome.storage.local.get(REPO_WATCHES_KEY)
+  return (result[REPO_WATCHES_KEY] as RepoWatch[]) ?? []
 }
 
-/** Save all subscriptions to storage. */
-export async function saveSubscriptions(subscriptions: Subscription[]): Promise<void> {
-  await chrome.storage.local.set({ [SUBSCRIPTIONS_KEY]: subscriptions })
+/** Save all repo watches to storage. */
+export async function saveRepoWatches(watches: RepoWatch[]): Promise<void> {
+  await chrome.storage.local.set({ [REPO_WATCHES_KEY]: watches })
 }
 
-/** Add a single subscription. */
-export async function addSubscription(sub: Subscription): Promise<void> {
-  const subs = await getSubscriptions()
+/** Add a repo watch. */
+export async function addRepoWatch(watch: RepoWatch): Promise<void> {
+  const watches = await getRepoWatches()
+  watches.push(watch)
+  await saveRepoWatches(watches)
+}
+
+/** Remove a repo watch by ID. */
+export async function removeRepoWatch(id: string): Promise<void> {
+  const watches = await getRepoWatches()
+  await saveRepoWatches(watches.filter((w) => w.id !== id))
+}
+
+/** Update a repo watch by ID with partial data. */
+export async function updateRepoWatch(id: string, patch: Partial<RepoWatch>): Promise<void> {
+  const watches = await getRepoWatches()
+  const idx = watches.findIndex((w) => w.id === id)
+  if (idx === -1) return
+  watches[idx] = { ...watches[idx], ...patch }
+  await saveRepoWatches(watches)
+}
+
+/** Create or merge a repo watch for the given owner/repo. */
+export async function upsertRepoWatch(
+  owner: string,
+  repo: string,
+  events: { releases: boolean; tags: boolean },
+): Promise<RepoWatch> {
+  const watches = await getRepoWatches()
+  const existing = watches.find((w) => w.owner === owner && w.repo === repo)
+
+  if (existing) {
+    const mergedEvents = {
+      releases: existing.events.releases || events.releases,
+      tags: existing.events.tags || events.tags,
+    }
+    const updated = { ...existing, events: mergedEvents, enabled: true }
+    await updateRepoWatch(existing.id, { events: mergedEvents, enabled: true })
+    return updated
+  }
+
+  const watch: RepoWatch = {
+    id: generateId(),
+    owner,
+    repo,
+    label: `${owner}/${repo}`,
+    events,
+    lastCheckedAt: null,
+    lastSeenReleaseId: null,
+    lastSeenTagSha: null,
+    enabled: true,
+    createdAt: new Date().toISOString(),
+  }
+  await addRepoWatch(watch)
+  return watch
+}
+
+/** Retrieve all issue subscriptions from storage. */
+export async function getIssueSubscriptions(): Promise<Subscription[]> {
+  await migrateIfNeeded()
+  const result = await chrome.storage.local.get(ISSUE_SUBS_KEY)
+  return (result[ISSUE_SUBS_KEY] as Subscription[]) ?? []
+}
+
+/** Save all issue subscriptions to storage. */
+export async function saveIssueSubscriptions(subs: Subscription[]): Promise<void> {
+  await chrome.storage.local.set({ [ISSUE_SUBS_KEY]: subs })
+}
+
+/** Add an issue subscription. */
+export async function addIssueSubscription(sub: Subscription): Promise<void> {
+  const subs = await getIssueSubscriptions()
   subs.push(sub)
-  await saveSubscriptions(subs)
+  await saveIssueSubscriptions(subs)
 }
 
-/** Remove a subscription by ID. */
-export async function removeSubscription(id: string): Promise<void> {
-  const subs = await getSubscriptions()
-  const filtered = subs.filter((s) => s.id !== id)
-  await saveSubscriptions(filtered)
+/** Remove an issue subscription by ID. */
+export async function removeIssueSubscription(id: string): Promise<void> {
+  const subs = await getIssueSubscriptions()
+  await saveIssueSubscriptions(subs.filter((s) => s.id !== id))
 }
 
-/** Update a subscription by ID with partial data. */
-export async function updateSubscription(
+/** Update an issue subscription by ID with partial data. */
+export async function updateIssueSubscription(
   id: string,
   patch: Partial<Subscription>,
 ): Promise<void> {
-  const subs = await getSubscriptions()
+  const subs = await getIssueSubscriptions()
   const idx = subs.findIndex((s) => s.id === id)
   if (idx === -1) return
   subs[idx] = { ...subs[idx], ...patch }
-  await saveSubscriptions(subs)
+  await saveIssueSubscriptions(subs)
 }
 
 /** Retrieve all notifications from storage. */
@@ -59,13 +130,10 @@ export async function saveNotifications(notifications: NotificationRecord[]): Pr
 }
 
 /** Add new notification records. */
-export async function addNotifications(
-  newNotifs: NotificationRecord[],
-): Promise<void> {
+export async function addNotifications(newNotifs: NotificationRecord[]): Promise<void> {
   if (newNotifs.length === 0) return
   const existing = await getNotifications()
   const combined = [...newNotifs, ...existing]
-  // Keep at most 200 notifications
   const trimmed = combined.slice(0, 200)
   await saveNotifications(trimmed)
 }
@@ -106,4 +174,10 @@ export async function saveSettings(settings: Settings): Promise<void> {
 export async function getUnreadCount(): Promise<number> {
   const notifs = await getNotifications()
   return notifs.filter((n) => !n.read).length
+}
+
+/** Count total active watches (repo watches + issue subscriptions). */
+export async function getWatchCount(): Promise<number> {
+  const [watches, issues] = await Promise.all([getRepoWatches(), getIssueSubscriptions()])
+  return watches.length + issues.length
 }

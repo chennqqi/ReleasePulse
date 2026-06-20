@@ -90,6 +90,18 @@ export async function fetchIssueEvents(
   return handleResponse(response)
 }
 
+/** Fetch current GitHub API rate limit status. */
+export async function fetchRateLimit(
+  token: string,
+): Promise<{ remaining: number; limit: number }> {
+  const url = `${API_BASE}/rate_limit`
+  const response = await fetch(url, { headers: buildHeaders(token) })
+  const data = await handleResponse<{
+    rate: { remaining: number; limit: number }
+  }>(response)
+  return { remaining: data.rate.remaining, limit: data.rate.limit }
+}
+
 /** Parse a GitHub URL into owner and repo. Returns null if invalid. */
 export function parseGithubUrl(
   url: string,

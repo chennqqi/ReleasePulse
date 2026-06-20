@@ -1,91 +1,104 @@
-import type { Subscription, CheckResult, NotificationRecord } from '@/types'
+import type { RepoWatch, Subscription, RepoWatchCheckResult, CheckResult, NotificationRecord } from '@/types'
 import { fetchReleases, fetchTags, fetchIssue, fetchIssueEvents } from '@/lib/github-api'
 import { generateId } from '@/lib/storage'
 
-/** Check a single subscription for updates. Returns check result with any new notifications. */
-export async function checkSubscription(
-  sub: Subscription,
+/** Check a repo watch for release and tag updates. */
+export async function checkRepoWatch(
+  watch: RepoWatch,
   token: string,
-): Promise<CheckResult> {
-  switch (sub.type) {
-    case 'github_release':
-      return checkRelease(sub, token)
-    case 'github_tag':
-      return checkTag(sub, token)
-    case 'github_issue':
-      return checkIssue(sub, token)
-    default:
-      return { hasUpdate: false, newId: sub.lastSeenId ?? '', notifications: [] }
+): Promise<RepoWatchCheckResult> {
+  const notifications: RepoWatchCheckResult['notifications'] = []
+  let lastSeenReleaseId = watch.lastSeenReleaseId
+  let lastSeenTagSha = watch.lastSeenTagSha
+
+  if (watch.events.releases) {
+    const releaseResult = await checkReleaseForWatch(watch, token)
+    lastSeenReleaseId = releaseResult.newId
+    notifications.push(...releaseResult.notifications)
   }
+
+  if (watch.events.tags) {
+    const tagResult = await checkTagForWatch(watch, token)
+    lastSeenTagSha = tagResult.newId
+    notifications.push(...tagResult.notifications)
+  }
+
+  return { lastSeenReleaseId, lastSeenTagSha, notifications }
 }
 
-/** Check for new releases. */
-async function checkRelease(sub: Subscription, token: string): Promise<CheckResult> {
-  const releases = await fetchReleases(sub.owner, sub.repo, token, 5)
+async function checkReleaseForWatch(
+  watch: RepoWatch,
+  token: string,
+): Promise<{ newId: string | null; notifications: RepoWatchCheckResult['notifications'] }> {
+  const releases = await fetchReleases(watch.owner, watch.repo, token, 5)
   if (releases.length === 0) {
-    return { hasUpdate: false, newId: sub.lastSeenId ?? '', notifications: [] }
+    return { newId: watch.lastSeenReleaseId, notifications: [] }
   }
 
   const latestId = releases[0].id.toString()
-  const lastSeenId = sub.lastSeenId
+  const lastSeenId = watch.lastSeenReleaseId
 
-  // First check - just record the latest, don't notify
   if (!lastSeenId) {
-    return { hasUpdate: false, newId: latestId, notifications: [] }
+    return { newId: latestId, notifications: [] }
   }
 
-  // Find releases newer than lastSeenId
-  const newReleases = releases.filter(
-    (r) => r.id.toString() > lastSeenId,
-  )
-
+  const newReleases = releases.filter((r) => r.id.toString() > lastSeenId)
   if (newReleases.length === 0) {
-    return { hasUpdate: false, newId: latestId, notifications: [] }
+    return { newId: latestId, notifications: [] }
   }
 
-  const notifications = newReleases.map((r) => ({
-    type: 'github_release' as const,
-    title: `New release: ${sub.label}`,
-    body: r.name ?? r.tag_name,
-    url: r.html_url,
-  }))
-
-  return { hasUpdate: true, newId: latestId, notifications }
+  return {
+    newId: latestId,
+    notifications: newReleases.map((r) => ({
+      type: 'github_release' as const,
+      title: `New release: ${watch.label}`,
+      body: r.name ?? r.tag_name,
+      url: r.html_url,
+    })),
+  }
 }
 
-/** Check for new tags. */
-async function checkTag(sub: Subscription, token: string): Promise<CheckResult> {
-  const tags = await fetchTags(sub.owner, sub.repo, token, 10)
+async function checkTagForWatch(
+  watch: RepoWatch,
+  token: string,
+): Promise<{ newId: string | null; notifications: RepoWatchCheckResult['notifications'] }> {
+  const tags = await fetchTags(watch.owner, watch.repo, token, 10)
   if (tags.length === 0) {
-    return { hasUpdate: false, newId: sub.lastSeenId ?? '', notifications: [] }
+    return { newId: watch.lastSeenTagSha, notifications: [] }
   }
 
-  // Use the latest tag's sha as the identifier
   const latestSha = tags[0].object.sha
-  const lastSeenSha = sub.lastSeenId
+  const lastSeenSha = watch.lastSeenTagSha
 
   if (!lastSeenSha) {
-    return { hasUpdate: false, newId: latestSha, notifications: [] }
+    return { newId: latestSha, notifications: [] }
   }
 
-  // Find tags newer than lastSeenSha
   const newTags = tags.filter((t) => t.object.sha > lastSeenSha)
-
   if (newTags.length === 0) {
-    return { hasUpdate: false, newId: latestSha, notifications: [] }
+    return { newId: latestSha, notifications: [] }
   }
 
-  const notifications = newTags.map((t) => {
-    const tagName = t.ref.replace('refs/tags/', '')
-    return {
-      type: 'github_tag' as const,
-      title: `New tag: ${sub.label}`,
-      body: tagName,
-      url: `https://github.com/${sub.owner}/${sub.repo}/releases/tag/${tagName}`,
-    }
-  })
+  return {
+    newId: latestSha,
+    notifications: newTags.map((t) => {
+      const tagName = t.ref.replace('refs/tags/', '')
+      return {
+        type: 'github_tag' as const,
+        title: `New tag: ${watch.label}`,
+        body: tagName,
+        url: `https://github.com/${watch.owner}/${watch.repo}/releases/tag/${tagName}`,
+      }
+    }),
+  }
+}
 
-  return { hasUpdate: true, newId: latestSha, notifications }
+/** Check a single issue subscription for updates. */
+export async function checkIssueSubscription(
+  sub: Subscription,
+  token: string,
+): Promise<CheckResult> {
+  return checkIssue(sub, token)
 }
 
 /** Check for issue state changes. */
@@ -97,7 +110,6 @@ async function checkIssue(sub: Subscription, token: string): Promise<CheckResult
   const issue = await fetchIssue(sub.owner, sub.repo, sub.issueNumber, token)
   const events = await fetchIssueEvents(sub.owner, sub.repo, sub.issueNumber, token, 20)
 
-  // Build a state hash from the issue state + recent events
   const recentEvents = events.slice(-10)
   const stateHash = `${issue.state}:${issue.updated_at}:${recentEvents
     .map((e) => `${e.event}:${e.created_at}`)
@@ -113,11 +125,8 @@ async function checkIssue(sub: Subscription, token: string): Promise<CheckResult
     return { hasUpdate: false, newId: stateHash, notifications: [] }
   }
 
-  // Detect what changed by looking at recent events since last check
   const monitoredEvents: string[] = (sub.issueEvents ?? ['closed', 'reopened']).map(String)
-  const newEvents = recentEvents.filter((e) =>
-    monitoredEvents.includes(e.event),
-  )
+  const newEvents = recentEvents.filter((e) => monitoredEvents.includes(e.event))
 
   const notifications = newEvents.map((e) => ({
     type: 'github_issue' as const,
@@ -129,8 +138,25 @@ async function checkIssue(sub: Subscription, token: string): Promise<CheckResult
   return { hasUpdate: notifications.length > 0, newId: stateHash, notifications }
 }
 
-/** Convert check result notifications into NotificationRecord objects. */
-export function createNotificationRecords(
+/** Convert repo watch notifications into NotificationRecord objects. */
+export function createRepoWatchNotificationRecords(
+  watchId: string,
+  notifications: RepoWatchCheckResult['notifications'],
+): NotificationRecord[] {
+  return notifications.map((n) => ({
+    id: generateId(),
+    subscriptionId: watchId,
+    type: n.type,
+    title: n.title,
+    body: n.body,
+    url: n.url,
+    read: false,
+    createdAt: new Date().toISOString(),
+  }))
+}
+
+/** Convert issue check result notifications into NotificationRecord objects. */
+export function createIssueNotificationRecords(
   subscriptionId: string,
   checkResult: CheckResult,
 ): NotificationRecord[] {

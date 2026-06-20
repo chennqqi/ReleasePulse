@@ -1,6 +1,6 @@
 /**
- * Simple PNG icon generator for ReleasePulse.
- * Generates solid-color rounded square icons with a bell shape.
+ * PNG icon generator for ReleasePulse.
+ * Draws indigo rounded square with pulse-wave + release arrow motif.
  * Run: node scripts/generate-icons.mjs
  */
 import { writeFileSync, mkdirSync } from 'fs'
@@ -10,6 +10,10 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const assetsDir = join(__dirname, '..', 'src', 'assets')
+
+const BRAND = { r: 0x43, g: 0x38, b: 0xca }
+const ACCENT = { r: 0xff, g: 0x6b, b: 0x4a }
+const WHITE = { r: 0xff, g: 0xff, b: 0xff }
 
 /** Create a simple RGBA PNG from pixel data. */
 function createPNG(width, height, pixels) {
@@ -27,22 +31,22 @@ function createPNG(width, height, pixels) {
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(width, 0)
   ihdr.writeUInt32BE(height, 4)
-  ihdr[8] = 8  // bit depth
-  ihdr[9] = 6  // color type (RGBA)
-  ihdr[10] = 0 // compression
-  ihdr[11] = 0 // filter
-  ihdr[12] = 0 // interlace
+  ihdr[8] = 8
+  ihdr[9] = 6
+  ihdr[10] = 0
+  ihdr[11] = 0
+  ihdr[12] = 0
 
   const rawData = Buffer.alloc(height * (1 + width * 4))
   let offset = 0
   for (let y = 0; y < height; y++) {
-    rawData[offset++] = 0 // filter: none
+    rawData[offset++] = 0
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4
-      rawData[offset++] = pixels[idx]     // R
-      rawData[offset++] = pixels[idx + 1] // G
-      rawData[offset++] = pixels[idx + 2] // B
-      rawData[offset++] = pixels[idx + 3] // A
+      rawData[offset++] = pixels[idx]
+      rawData[offset++] = pixels[idx + 1]
+      rawData[offset++] = pixels[idx + 2]
+      rawData[offset++] = pixels[idx + 3]
     }
   }
 
@@ -55,7 +59,6 @@ function createPNG(width, height, pixels) {
   ])
 }
 
-/** CRC32 lookup table. */
 const crcTable = []
 for (let n = 0; n < 256; n++) {
   let c = n
@@ -66,7 +69,6 @@ for (let n = 0; n < 256; n++) {
   crcTable[n] = c
 }
 
-/** Compute CRC32. */
 function crc32(buf) {
   let crc = 0xffffffff
   for (let i = 0; i < buf.length; i++) {
@@ -75,7 +77,38 @@ function crc32(buf) {
   return (crc ^ 0xffffffff) >>> 0
 }
 
-/** Generate icon pixels: blue rounded square with a white bell. */
+function lerp(a, b, t) {
+  return a + (b - a) * t
+}
+
+function setPixel(pixels, size, x, y, color, alpha = 255) {
+  const ix = Math.round(x)
+  const iy = Math.round(y)
+  if (ix < 0 || iy < 0 || ix >= size || iy >= size) return
+  const idx = (iy * size + ix) * 4
+  pixels[idx] = color.r
+  pixels[idx + 1] = color.g
+  pixels[idx + 2] = color.b
+  pixels[idx + 3] = alpha
+}
+
+function drawLine(pixels, size, x0, y0, x1, y1, color, thickness) {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const x = lerp(x0, x1, t)
+    const y = lerp(y0, y1, t)
+    for (let dx = -thickness; dx <= thickness; dx++) {
+      for (let dy = -thickness; dy <= thickness; dy++) {
+        if (dx * dx + dy * dy <= thickness * thickness) {
+          setPixel(pixels, size, x + dx, y + dy, color)
+        }
+      }
+    }
+  }
+}
+
+/** Generate icon pixels: gradient rounded square with pulse wave + arrow. */
 function generateIcon(size) {
   const pixels = new Uint8Array(size * size * 4)
   const cx = size / 2
@@ -90,55 +123,42 @@ function generateIcon(size) {
       const dist = Math.sqrt(dx * dx + dy * dy)
 
       if (dist <= radius) {
-        // Blue background
-        pixels[idx] = 0x25     // R
-        pixels[idx + 1] = 0x63 // G
-        pixels[idx + 2] = 0xeb // B
-        pixels[idx + 3] = 0xff // A
-
-        // Draw a simple bell shape
-        const bellCx = cx
-        const bellCy = cy - size * 0.02
-        const bellW = size * 0.18
-        const bellH = size * 0.22
-
-        // Bell body (ellipse)
-        const bdx = (x - bellCx) / bellW
-        const bdy = (y - bellCy) / bellH
-        const bdist = bdx * bdx + bdy * bdy
-
-        if (bdist <= 1 && y < cy + size * 0.1) {
-          pixels[idx] = 0xff
-          pixels[idx + 1] = 0xff
-          pixels[idx + 2] = 0xff
-        }
-
-        // Bell clapper (small circle below)
-        const clapperDx = x - bellCx
-        const clapperDy = y - (cy + size * 0.12)
-        const clapperDist = Math.sqrt(clapperDx * clapperDx + clapperDy * clapperDy)
-        if (clapperDist <= size * 0.06) {
-          pixels[idx] = 0xff
-          pixels[idx + 1] = 0xff
-          pixels[idx + 2] = 0xff
-        }
-      } else {
-        // Transparent
-        pixels[idx + 3] = 0
+        const t = (x - (cx - radius)) / (radius * 2)
+        pixels[idx] = Math.round(lerp(BRAND.r, ACCENT.r, t * 0.35))
+        pixels[idx + 1] = Math.round(lerp(BRAND.g, ACCENT.g, t * 0.35))
+        pixels[idx + 2] = Math.round(lerp(BRAND.b, ACCENT.b, t * 0.35))
+        pixels[idx + 3] = 0xff
       }
     }
   }
 
+  const thickness = Math.max(1, size * 0.045)
+  const yBase = cy + size * 0.02
+  const xStart = cx - size * 0.22
+  const xMid = cx - size * 0.06
+  const xPeak = cx + size * 0.02
+  const xEnd = cx + size * 0.22
+
+  drawLine(pixels, size, xStart, yBase, xMid, yBase, WHITE, thickness)
+  drawLine(pixels, size, xMid, yBase, xPeak, cy - size * 0.12, WHITE, thickness)
+  drawLine(pixels, size, xPeak, cy - size * 0.12, xEnd, yBase - size * 0.08, WHITE, thickness)
+
+  const arrowX = cx + size * 0.18
+  const arrowY = cy - size * 0.06
+  const arrowSize = size * 0.08
+  drawLine(pixels, size, arrowX, arrowY - arrowSize, arrowX, arrowY + arrowSize * 0.3, WHITE, thickness)
+  drawLine(pixels, size, arrowX - arrowSize * 0.6, arrowY - arrowSize * 0.2, arrowX, arrowY - arrowSize, WHITE, thickness)
+  drawLine(pixels, size, arrowX + arrowSize * 0.6, arrowY - arrowSize * 0.2, arrowX, arrowY - arrowSize, WHITE, thickness)
+
   return pixels
 }
 
-// Generate icons
 mkdirSync(assetsDir, { recursive: true })
 
-for (const size of [16, 48, 128]) {
-  const pixels = generateIcon(size)
-  const png = createPNG(size, size, pixels)
-  const filepath = join(assetsDir, `icon-${size}.png`)
+for (const iconSize of [16, 48, 128]) {
+  const pixels = generateIcon(iconSize)
+  const png = createPNG(iconSize, iconSize, pixels)
+  const filepath = join(assetsDir, `icon-${iconSize}.png`)
   writeFileSync(filepath, png)
   console.log(`Generated: ${filepath} (${png.length} bytes)`)
 }

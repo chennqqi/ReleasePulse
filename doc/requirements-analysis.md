@@ -38,3 +38,33 @@
 - GitHub API 速率限制需要妥善处理
 - Manifest V3 Service Worker 生命周期限制（会被休眠，需用 chrome.alarms）
 - Token 安全存储（使用 chrome.storage.local，不暴露到 content script）
+
+## 日期: 2026-06-20 — 产品设计分析
+
+### 现状问题
+
+- 研发实现为功能导向（Release/Tag/Issue 三类型并列），用户认知成本高
+- Popup 仅通知流，Options 单页混合引导/订阅/设置，信息架构混乱
+- 品牌使用通用蓝色+铃铛，与 GitHub Watch 难以区分
+- 仓库页双按钮注入，首次使用引导在 Popup/Options 重复
+
+### 重设计方向
+
+- 用户任务导向：RepoWatch（仓库+事件勾选）替代多条独立订阅
+- Popup 三 Tab + Options 侧边栏，Settings 独立且展示 API 同步状态
+- GitHub 统一「Watch with ReleasePulse」按钮 + Popover
+- 视觉：Indigo #4338CA + Coral #FF6B4A，Logo 脉冲→箭头语义
+- 路线图分三阶段：体验修复 → 模型优化 → 多源扩展
+
+## 日期: 2026-06-20 — Phase 1 落地
+
+- 已实现品牌、Popup 三 Tab、Options 侧边栏、GitHub Watch Popover
+- Settings 新增 onboardingCompleted / lastSyncAt / apiRemaining 字段
+- 构建验证通过（npm run build）
+
+## 日期: 2026-06-20 — Phase 2 落地
+
+- RepoWatch 替代 release/tag 双订阅，migrate.ts 自动迁移 v1 数据
+- checker 拆分 checkRepoWatch + checkIssueSubscription
+- storage 分为 repoWatches / issueSubscriptions 两个 key
+- UI Add 流程改为 Repository(Issue) + 事件勾选
