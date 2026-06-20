@@ -59,17 +59,34 @@ https://github.com/chennqqi/ReleasePulse/blob/main/PRIVACY.md
 | host: api.github.com | Fetch release, tag, and issue data |
 | host: github.com | Inject optional subscribe button on repo pages |
 
-## Screenshots
+## Screenshots & promotional images
 
-Source files in `doc/store-screenshots/`:
+**Chrome Web Store specs:** 1280×800 (or 640×400) · JPEG or 24-bit PNG (no alpha) · max 5 per locale.
 
-| File | Description | Upload order |
-|------|-------------|--------------|
-| `01-github-watch-popover.png` | GitHub repo page — “Watch with ReleasePulse” on react repo | 1 |
-| `02-watch-popover.png` | Watch popover — Releases & Tags checkboxes | 2 |
-| `03-options-watching.png` | Options — Watching page with repo groups | 3 |
+Generated assets (run `python scripts/generate-store-assets.py`):
 
-Recommended size: **1280×800** or **640×400** (resize if needed before upload)
+| Chrome field | Path |
+|--------------|------|
+| **Global screenshots** | `doc/store-assets/global/screenshots/` (5 files) |
+| **Localized screenshots (简体中文)** | `doc/store-assets/zh-CN/screenshots/` (5 files) |
+| **Small promo tile** (440×280) | `doc/store-assets/global/promo-small-440x280.png` |
+| **Marquee promo tile** (1400×560) | `doc/store-assets/global/promo-marquee-1400x560.png` |
+
+| # | File | Scene |
+|---|------|-------|
+| 1 | `01-github-watch.png` | GitHub repo — Watch with ReleasePulse button |
+| 2 | `02-watch-popover.png` | Releases / Tags popover |
+| 3 | `03-options-watching.png` | Options — Watching (compact) |
+| 4 | `04-popup-feed.png` | Popup Feed tab |
+| 5 | `05-options-full.png` | Options — full Watching page |
+
+**zh-CN note:** Current zh-CN files use English UI sources. Before publishing the Chinese listing, set extension language to **简体中文**, recapture sources, and regenerate. See `doc/store-assets/README.md`.
+
+Legacy raw captures remain in `doc/store-screenshots/` (source only, wrong size for upload).
+
+### Promotional video (optional)
+
+Plan A: English demo + Chinese SRT — see [`doc/store-video.md`](./store-video.md)
 
 ## Privacy policy URL
 
@@ -91,10 +108,14 @@ https://github.com/chennqqi/ReleasePulse
 
 1. `npm run release:pack`
 2. Upload `release-pulse-1.0.0-chrome.zip`
-3. Upload 3 screenshots from `doc/store-screenshots/`
-4. Paste short + detailed description from this file
-5. Set privacy policy URL
-6. Submit for review
+3. **Global screenshots:** upload all 5 from `doc/store-assets/global/screenshots/`
+4. **Localized (zh-CN) screenshots:** upload all 5 from `doc/store-assets/zh-CN/screenshots/` (replace with 简体中文 UI captures before go-live if possible)
+5. **Small promo tile:** `doc/store-assets/global/promo-small-440x280.png`
+6. **Marquee promo tile:** `doc/store-assets/global/promo-marquee-1400x560.png`
+7. Optional: promotional video — [`doc/store-video.md`](./store-video.md)
+8. Paste short + detailed description from this file
+9. Set privacy policy URL
+10. Submit for review
 
 **Minimum browser:** Chrome 121+
 
@@ -117,15 +138,53 @@ ReleasePulse does **not** collect or transmit personal data to ReleasePulse serv
 
 ### AMO reviewer notes (optional field)
 
-> Polls GitHub API for user watches; optional token in local storage only. Injects subscribe UI on GitHub repo pages. No external analytics.
+> Open-source on GitHub (Apache-2.0). Polls GitHub API for user-configured watches only; optional token in `browser.storage.local`. Content script injects subscribe UI on `github.com/*/*` repo pages. No remote code, no analytics. Two linter warnings remain from minified `react-dom` (`innerHTML`); our source does not use `innerHTML` or `dangerouslySetInnerHTML`.
+
+### Source code submission (AMO form)
+
+**Do you need to submit source code?** → **Yes**
+
+The uploaded zip is a Vite production build (TypeScript, React, Tailwind). Reviewers must reproduce it from source.
+
+**Tools used (check all that apply on the form):**
+
+| AMO question | Answer | This project |
+|--------------|--------|--------------|
+| Code generation or minification | Yes | TypeScript → JS; Vite minifies bundles |
+| File bundler (e.g. webpack) | Yes | **Vite** |
+| HTML/CSS template engine | Yes | React TSX/JSX; Tailwind CSS + PostCSS |
+| Other build processing | Yes | `@crxjs/vite-plugin`, `patch-firefox-manifest.mjs`, `pack-store-zip.mjs` |
+
+**Source repository:** `https://github.com/chennqqi/ReleasePulse` (public, Apache-2.0)  
+**Tag for this release:** `v1.0.0` (or matching commit on `main`)
+
+**Build instructions (paste into “Build notes”):**
+
+```text
+Requirements: Node.js 24+, npm
+
+git clone https://github.com/chennqqi/ReleasePulse.git
+cd ReleasePulse
+git checkout v1.0.0
+npm ci
+npm run firefox:zip
+
+Upload: web-ext-artifacts/release-pulse-1.0.0-firefox.zip
+(Firefox package removes background.service_worker; uses background.scripts only.)
+
+Verify: npm run release:verify
+```
+
+Do **not** upload `node_modules/`, `dist/`, or `web-ext-artifacts/` as source — reviewers build locally.
 
 ### Firefox upload checklist
 
-1. `npm run release:pack`
-2. Upload `release-pulse-1.0.0-firefox.zip`
-3. Upload same 3 screenshots
-4. Summary + description from this file
-5. Privacy policy URL + Apache 2.0 license
-6. Submit for review (Mozilla signing)
+1. `npm run release:pack` (or `npm run firefox:zip`)
+2. Upload `release-pulse-1.0.0-firefox.zip` (not a manual `dist/` zip)
+3. Point source review to GitHub repo + build notes above
+4. Upload screenshots (see Screenshots section)
+5. Summary + description from this file
+6. Privacy policy URL + Apache 2.0 license
+7. Submit for review (Mozilla signing)
 
-**Minimum browser:** Firefox 136+
+**Minimum browser:** Firefox 140+ desktop, Firefox for Android 142+

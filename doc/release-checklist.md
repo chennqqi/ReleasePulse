@@ -8,9 +8,11 @@ Use this checklist before submitting to [Chrome Web Store](https://chrome.google
 
 ```bash
 npm run release:pack
+python scripts/generate-store-assets.py
 ```
 
-This runs: version sync → tests → build → Firefox lint → packages both store zips.
+This runs: version sync → tests → build → Firefox lint → packages both store zips.  
+Store images: see `doc/store-assets/` (generate with Python script above).
 
 | Output | Path |
 |--------|------|
@@ -26,7 +28,7 @@ Zip roots contain `manifest.json` directly (not a nested folder). Source maps ar
 - [ ] Firefox temporary install tested (passed)
 - [ ] Chrome side-load tested with `dist/` or chrome zip
 - [ ] Privacy policy live at GitHub URL (see below)
-- [ ] Screenshots ready in `doc/store-screenshots/`
+- [ ] Store images generated in `doc/store-assets/` (1280×800 screenshots + promo tiles)
 
 ---
 
@@ -37,11 +39,15 @@ Zip roots contain `manifest.json` directly (not a nested folder). Source maps ar
 | Listing copy (EN) | [`doc/store-listing.md`](./store-listing.md) |
 | Privacy policy | [`PRIVACY.md`](../PRIVACY.md) |
 | Privacy policy URL | `https://github.com/chennqqi/ReleasePulse/blob/main/PRIVACY.md` |
-| Screenshots (3) | `doc/store-screenshots/01-*.png` … `03-*.png` |
+| Global screenshots (×5) | `doc/store-assets/global/screenshots/` |
+| zh-CN screenshots (×5) | `doc/store-assets/zh-CN/screenshots/` |
+| Small promo 440×280 | `doc/store-assets/global/promo-small-440x280.png` |
+| Marquee promo 1400×560 | `doc/store-assets/global/promo-marquee-1400x560.png` |
+| Promo video + SRT | [`doc/store-video.md`](./store-video.md) |
 | Icon 128×128 | Built into extension (`src/assets/icon-128.png`) |
 | License | Apache 2.0 — [`LICENSE`](../LICENSE) |
 
-**Screenshot size:** 1280×800 or 640×400 recommended (resize before upload if needed).
+**Screenshot spec:** 1280×800 RGB PNG (no alpha), max 5 per locale.
 
 ---
 
@@ -69,7 +75,10 @@ Copy from [`doc/store-listing.md`](./store-listing.md) → Permission justificat
 ### Chrome checklist
 
 - [ ] Upload zip (not the `dist/` folder)
-- [ ] Upload 3 screenshots
+- [ ] Upload **5 global** screenshots from `doc/store-assets/global/screenshots/`
+- [ ] Upload **5 zh-CN** screenshots from `doc/store-assets/zh-CN/screenshots/`
+- [ ] Upload small promo tile (440×280) and marquee (1400×560)
+- [ ] Optional: YouTube promo video URL
 - [ ] Set privacy policy URL
 - [ ] Declare: **No remote code**; **No data sold to third parties**
 - [ ] Single purpose: GitHub release/tag/issue notifications
@@ -112,14 +121,15 @@ User data stays local; GitHub API calls go directly from the browser (see `PRIVA
 
 ### Firefox checklist
 
-- [ ] Upload zip on AMO submission page
-- [ ] Upload 3 screenshots (same as Chrome)
+- [ ] Upload zip on AMO submission page (`release-pulse-*-firefox.zip`)
+- [ ] **Source code:** Yes — link `https://github.com/chennqqi/ReleasePulse` tag `v1.0.0` + build notes in [`doc/store-listing.md`](./store-listing.md) → Source code submission
+- [ ] Upload screenshots (see `doc/store-listing.md`)
 - [ ] Privacy policy URL set
 - [ ] License: Apache 2.0
 - [ ] Confirm data collection: **None** (matches manifest)
 - [ ] Submit for review (Mozilla signing)
 
-**Minimum browser:** Firefox 136+ (`strict_min_version` in manifest)
+**Minimum browser:** Firefox 140+ desktop, Firefox for Android 142+ (`strict_min_version` in manifest)
 
 See also [`doc/firefox.md`](./firefox.md).
 
