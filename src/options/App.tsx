@@ -10,7 +10,8 @@ import {
 } from '@/lib/subscription-utils'
 import { formatRelativeTime, getTypeColor, getTypeLabel, cn } from '@/lib/utils'
 import { Logo } from '@/components/Logo'
-import type { IssueEvent } from '@/types'
+import { t, getSupportedLocales } from '@/i18n'
+import type { IssueEvent, Settings } from '@/types'
 import {
   Bell, Plus, Trash2, RefreshCw, Key, Clock, Github,
   ToggleLeft, ToggleRight, ExternalLink, Info,
@@ -20,9 +21,9 @@ type OptionsPage = 'watching' | 'settings' | 'about'
 type AddMode = 'repo' | 'issue'
 
 const NAV_ITEMS: { id: OptionsPage; label: string; icon: typeof Bell }[] = [
-  { id: 'watching', label: 'Watching', icon: Bell },
-  { id: 'settings', label: 'Settings', icon: Key },
-  { id: 'about', label: 'About', icon: Info },
+  { id: 'watching', label: t('options.nav.watching'), icon: Bell },
+  { id: 'settings', label: t('options.nav.settings'), icon: Key },
+  { id: 'about', label: t('options.nav.about'), icon: Info },
 ]
 
 /** Options page with sidebar navigation. */
@@ -54,7 +55,7 @@ export default function App() {
 
     if (addMode === 'issue') {
       if (!parsed?.issueNumber) {
-        setError('Please enter a valid GitHub issue URL (e.g. https://github.com/owner/repo/issues/123)')
+        setError(t('options.watching.errorInvalidIssueUrl'))
         return
       }
       await addIssue({
@@ -80,11 +81,11 @@ export default function App() {
     }
 
     if (!owner || !repo) {
-      setError('Please enter a valid GitHub repo URL or owner/repo')
+      setError(t('options.watching.errorInvalidRepoUrl'))
       return
     }
     if (!watchReleases && !watchTags) {
-      setError('Select at least one event type')
+      setError(t('options.watching.errorSelectEvent'))
       return
     }
 
@@ -120,17 +121,17 @@ export default function App() {
         {page === 'watching' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-gray-900">Watching ({watchCount})</h1>
+              <h1 className="text-xl font-semibold text-gray-900">{t('options.watching.title', { count: watchCount })}</h1>
               <button onClick={() => runCheck()} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700">
                 <RefreshCw size={14} className={cn(loading && 'animate-spin')} />
-                Check now
+                {t('common.checkNow')}
               </button>
             </div>
 
             <section className="bg-white rounded-lg border border-gray-200 p-5">
               <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
                 <Plus size={16} className="text-brand-600" />
-                Add watch
+                {t('options.watching.addWatch')}
               </h2>
               <div className="space-y-3">
                 <div className="flex gap-2">
@@ -143,7 +144,7 @@ export default function App() {
                         addMode === m ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                       )}
                     >
-                      {m === 'repo' ? 'Repository' : 'Issue'}
+                      {m === 'repo' ? t('common.repository') : t('common.issue')}
                     </button>
                   ))}
                 </div>
@@ -151,11 +152,11 @@ export default function App() {
                   <div className="flex gap-4 text-sm">
                     <label className="flex items-center gap-1 cursor-pointer">
                       <input type="checkbox" checked={watchReleases} onChange={(e) => setWatchReleases(e.target.checked)} className="rounded" />
-                      <span>Releases</span>
+                      <span>{t('common.releases')}</span>
                     </label>
                     <label className="flex items-center gap-1 cursor-pointer">
                       <input type="checkbox" checked={watchTags} onChange={(e) => setWatchTags(e.target.checked)} className="rounded" />
-                      <span>Tags</span>
+                      <span>{t('common.tags')}</span>
                     </label>
                   </div>
                 )}
@@ -179,12 +180,12 @@ export default function App() {
                     onClick={handleAdd}
                     className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
                   >
-                    Add
+                    {t('common.add')}
                   </button>
                 </div>
                 {addMode === 'issue' && (
                   <div className="flex items-center gap-3 text-sm">
-                    <span className="text-gray-500">Notify on:</span>
+                    <span className="text-gray-500">{t('common.notifyOn')}</span>
                     {(['closed', 'reopened', 'labeled', 'unlabeled'] as IssueEvent[]).map((evt) => (
                       <label key={evt} className="flex items-center gap-1 cursor-pointer">
                         <input
@@ -208,7 +209,7 @@ export default function App() {
             <section className="bg-white rounded-lg border border-gray-200 p-5">
               {watchingGroups.length === 0 ? (
                 <p className="text-gray-400 text-sm py-6 text-center">
-                  No watches yet. Add one above or use Watch with ReleasePulse on GitHub.
+                  {t('options.watching.noWatches')}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -237,7 +238,7 @@ export default function App() {
                                 })}
                                 className="rounded"
                               />
-                              <span>Releases</span>
+                              <span>{t('common.releases')}</span>
                             </label>
                             <label className="flex items-center gap-1 cursor-pointer">
                               <input
@@ -249,7 +250,7 @@ export default function App() {
                                 })}
                                 className="rounded"
                               />
-                              <span>Tags</span>
+                              <span>{t('common.tags')}</span>
                             </label>
                           </div>
                           <span className="text-xs text-gray-400 hidden sm:inline">
@@ -274,7 +275,7 @@ export default function App() {
                           </span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-gray-700 truncate">{sub.label}</p>
-                            <p className="text-xs text-gray-400">Last checked: {formatRelativeTime(sub.lastCheckedAt)}</p>
+                            <p className="text-xs text-gray-400">{t('common.lastChecked', { time: formatRelativeTime(sub.lastCheckedAt) })}</p>
                           </div>
                           <button onClick={() => toggleIssue(sub.id, !sub.enabled)} className="text-gray-400 hover:text-brand-600">
                             {sub.enabled ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
@@ -294,7 +295,7 @@ export default function App() {
 
         {page === 'settings' && (
           <div className="space-y-6">
-            <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{t('options.settings.title')}</h1>
             <div className="bg-brand-50 border border-brand-200 rounded-lg px-4 py-3 text-sm text-brand-800 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -304,7 +305,20 @@ export default function App() {
             </div>
             <section className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">GitHub Personal Access Token</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('options.settings.language')}</label>
+                <select
+                  value={settings.language}
+                  onChange={(e) => updateSettings({ language: e.target.value as Settings['language'] })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="auto">{t('options.settings.languageAuto')}</option>
+                  {getSupportedLocales().map((l) => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('options.settings.token')}</label>
                 <input
                   type="password"
                   value={settings.githubToken}
@@ -313,16 +327,16 @@ export default function App() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Without a token: 60 requests/hour. With a token: 5,000 requests/hour.{' '}
+                  {t('options.settings.tokenHint')}{' '}
                   <a href="https://github.com/settings/tokens/new?description=ReleasePulse&scopes=repo" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
-                    Create token
+                    {t('options.settings.createToken')}
                   </a>
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <Clock size={14} className="inline mr-1" />
-                  Check interval (minutes)
+                  {t('options.settings.checkInterval')}
                 </label>
                 <input
                   type="number"
@@ -342,7 +356,7 @@ export default function App() {
                   className="rounded"
                 />
                 <label htmlFor="desktopNotif" className="text-sm text-gray-700 cursor-pointer">
-                  Enable desktop notifications
+                  {t('options.settings.desktopNotif')}
                 </label>
               </div>
             </section>
@@ -351,23 +365,22 @@ export default function App() {
 
         {page === 'about' && (
           <div className="space-y-6">
-            <h1 className="text-xl font-semibold text-gray-900">About</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{t('options.about.title')}</h1>
             <section className="bg-white rounded-lg border border-gray-200 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <Logo size={40} />
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">ReleasePulse</h2>
-                  <p className="text-sm text-gray-500">Version 0.1.0</p>
+                  <p className="text-sm text-gray-500">{t('app.version', { version: '0.1.0' })}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed">
-                ReleasePulse monitors your GitHub repositories and notifies you about new releases,
-                tags, and issue status changes — so you never miss an update that matters.
+                {t('options.about.description')}
               </p>
               <ul className="mt-4 space-y-2 text-sm text-gray-600">
-                <li>• Watch repos with configurable Releases and Tags events</li>
-                <li>• Subscribe to individual issues for status updates</li>
-                <li>• Desktop notifications and configurable check interval</li>
+                <li>• {t('options.about.feature1')}</li>
+                <li>• {t('options.about.feature2')}</li>
+                <li>• {t('options.about.feature3')}</li>
               </ul>
             </section>
           </div>

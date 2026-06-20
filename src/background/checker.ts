@@ -1,6 +1,7 @@
 import type { RepoWatch, Subscription, RepoWatchCheckResult, CheckResult, NotificationRecord } from '@/types'
 import { fetchReleases, fetchTags, fetchIssue, fetchIssueEvents } from '@/lib/github-api'
 import { generateId } from '@/lib/storage'
+import { t } from '@/i18n'
 
 /** Check a repo watch for release and tag updates. */
 export async function checkRepoWatch(
@@ -51,7 +52,7 @@ async function checkReleaseForWatch(
     newId: latestId,
     notifications: newReleases.map((r) => ({
       type: 'github_release' as const,
-      title: `New release: ${watch.label}`,
+      title: t('notif.newRelease', { label: watch.label }),
       body: r.name ?? r.tag_name,
       url: r.html_url,
     })),
@@ -81,11 +82,11 @@ async function checkTagForWatch(
 
   return {
     newId: latestSha,
-    notifications: newTags.map((t) => {
-      const tagName = t.ref.replace('refs/tags/', '')
+    notifications: newTags.map((tag) => {
+      const tagName = tag.ref.replace('refs/tags/', '')
       return {
         type: 'github_tag' as const,
-        title: `New tag: ${watch.label}`,
+        title: t('notif.newTag', { label: watch.label }),
         body: tagName,
         url: `https://github.com/${watch.owner}/${watch.repo}/releases/tag/${tagName}`,
       }
@@ -130,8 +131,8 @@ async function checkIssue(sub: Subscription, token: string): Promise<CheckResult
 
   const notifications = newEvents.map((e) => ({
     type: 'github_issue' as const,
-    title: `Issue #${sub.issueNumber} ${e.event}: ${sub.label}`,
-    body: `${e.actor.login} ${e.event} the issue`,
+    title: t('notif.issueUpdate', { number: sub.issueNumber ?? 0, event: e.event, label: sub.label }),
+    body: t('notif.issueBody', { actor: e.actor.login, event: e.event }),
     url: issue.html_url,
   }))
 

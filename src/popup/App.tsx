@@ -10,6 +10,7 @@ import {
 import { formatRelativeTime, getTypeColor, getTypeLabel, cn } from '@/lib/utils'
 import { Logo } from '@/components/Logo'
 import { StatusBar } from '@/components/StatusBar'
+import { t } from '@/i18n'
 import type { SubscriptionType } from '@/types'
 import {
   RefreshCw, Settings, Trash2, ExternalLink, Sparkles,
@@ -79,7 +80,7 @@ export default function App() {
 
     if (addMode === 'issue') {
       if (!parsed?.issueNumber) {
-        setAddError('Please enter a valid GitHub issue URL')
+        setAddError(t('popup.errorInvalidIssueUrl'))
         return
       }
       await addIssue({
@@ -106,11 +107,11 @@ export default function App() {
     }
 
     if (!owner || !repo) {
-      setAddError('Please enter a valid GitHub repo URL or owner/repo')
+      setAddError(t('popup.errorInvalidRepoUrl'))
       return
     }
     if (!watchReleases && !watchTags) {
-      setAddError('Select at least one event type')
+      setAddError(t('popup.errorSelectEvent'))
       return
     }
 
@@ -156,14 +157,14 @@ export default function App() {
           <button
             onClick={() => runCheck()}
             className="p-1.5 hover:bg-gray-100 rounded transition-colors text-gray-600"
-            title="Check now"
+            title={t('common.checkNow')}
           >
             <RefreshCw size={15} className={cn(loading && 'animate-spin')} />
           </button>
           <button
             onClick={handleOpenOptions}
             className="p-1.5 hover:bg-gray-100 rounded transition-colors text-gray-600"
-            title="Settings"
+            title={t('common.settings')}
           >
             <Settings size={15} />
           </button>
@@ -177,14 +178,14 @@ export default function App() {
               <Sparkles size={24} className="text-brand-600" />
             </div>
             <h2 className="text-base font-semibold text-gray-900">
-              {onboardingStep === 0 && 'Welcome to ReleasePulse'}
-              {onboardingStep === 1 && 'Subscribe on GitHub'}
-              {onboardingStep === 2 && 'Configure API access'}
+              {onboardingStep === 0 && t('onboarding.welcome')}
+              {onboardingStep === 1 && t('onboarding.subscribeGithub')}
+              {onboardingStep === 2 && t('onboarding.configureApi')}
             </h2>
             <p className="text-xs text-gray-500 mt-1 max-w-[280px]">
-              {onboardingStep === 0 && 'Get notified about new releases, tags, and issue updates from GitHub repos.'}
-              {onboardingStep === 1 && 'Visit any GitHub repo and click Watch with ReleasePulse, or add watches manually.'}
-              {onboardingStep === 2 && 'Add a GitHub token to increase API limit from 60 to 5,000 requests/hour.'}
+              {onboardingStep === 0 && t('onboarding.welcomeDesc')}
+              {onboardingStep === 1 && t('onboarding.subscribeDesc')}
+              {onboardingStep === 2 && t('onboarding.configureApiDesc')}
             </p>
           </div>
 
@@ -198,7 +199,7 @@ export default function App() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Without a token you may hit rate limits with many watches.
+                {t('onboarding.tokenHint')}
               </p>
             </div>
           )}
@@ -218,7 +219,7 @@ export default function App() {
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
             >
               <Github size={16} />
-              Explore GitHub repos
+              {t('onboarding.exploreGithub')}
               <ArrowRight size={14} />
             </button>
           ) : (
@@ -226,23 +227,23 @@ export default function App() {
               onClick={() => handleFinishOnboarding(onboardingStep === 2 && !settings.githubToken)}
               className="w-full px-3 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
             >
-              {onboardingStep === 2 ? (settings.githubToken ? 'Finish setup' : 'Skip for now') : 'Continue'}
+              {onboardingStep === 2 ? (settings.githubToken ? t('onboarding.finishSetup') : t('onboarding.skipForNow')) : t('onboarding.continue')}
             </button>
           )}
         </div>
       ) : (
         <>
           <div className="flex border-b border-gray-200 bg-white">
-            {(['feed', 'watching', 'add'] as PopupTab[]).map((t) => (
+            {(['feed', 'watching', 'add'] as PopupTab[]).map((tabId) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabId}
+                onClick={() => setTab(tabId)}
                 className={cn(
                   'flex-1 py-2.5 text-sm font-medium capitalize transition-colors',
-                  tab === t ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700',
+                  tab === tabId ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700',
                 )}
               >
-                {t}
+                {t(`popup.tab.${tabId}`)}
               </button>
             ))}
           </div>
@@ -260,7 +261,7 @@ export default function App() {
                         feedFilter === f ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                       )}
                     >
-                      {f === 'all' ? 'All' : getTypeLabel(f)}
+                      {f === 'all' ? t('common.all') : getTypeLabel(f)}
                     </button>
                   ))}
                 </div>
@@ -269,8 +270,8 @@ export default function App() {
                 {filteredNotifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                     <Logo size={32} className="opacity-40 mb-2" />
-                    <p className="text-sm">No notifications</p>
-                    <p className="text-xs mt-1">Watching {watchCount} item{watchCount !== 1 ? 's' : ''}</p>
+                    <p className="text-sm">{t('popup.noNotifications')}</p>
+                    <p className="text-xs mt-1">{t('popup.watchingItems', { count: watchCount })}</p>
                   </div>
                 ) : (
                   timeSections.map((section) => (
@@ -286,10 +287,10 @@ export default function App() {
               {notifications.length > 0 && (
                 <div className="flex items-center justify-between px-4 py-2 bg-white border-t border-gray-200">
                   <button onClick={() => markAllRead()} className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-600">
-                    <CheckCheck size={14} /> Mark all read
+                    <CheckCheck size={14} /> {t('popup.markAllRead')}
                   </button>
                   <button onClick={() => clearAll()} className="flex items-center gap-1 text-xs text-gray-600 hover:text-red-500">
-                    <Trash2 size={14} /> Clear all
+                    <Trash2 size={14} /> {t('popup.clearAll')}
                   </button>
                 </div>
               )}
@@ -300,9 +301,9 @@ export default function App() {
             <div className="flex-1 max-h-[380px] overflow-y-auto">
               {watchingGroups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-gray-400 px-4">
-                  <p className="text-sm">No watches yet</p>
+                  <p className="text-sm">{t('popup.noWatches')}</p>
                   <button onClick={() => setTab('add')} className="mt-2 text-xs text-brand-600 hover:underline">
-                    Add your first watch
+                    {t('popup.addFirstWatch')}
                   </button>
                 </div>
               ) : (
@@ -333,7 +334,7 @@ export default function App() {
                     {group.issues.map((sub) => (
                       <div key={sub.id} className="flex items-center gap-2 py-1">
                         <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded', getTypeColor('github_issue'))}>
-                          Issue
+                          {t('common.issue')}
                         </span>
                         <span className="flex-1 text-xs text-gray-400 truncate">{sub.label}</span>
                         <button onClick={() => toggleIssue(sub.id, !sub.enabled)} className="text-gray-400 hover:text-brand-600">
@@ -362,7 +363,7 @@ export default function App() {
                       addMode === m ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
                     )}
                   >
-                    {m === 'repo' ? 'Repository' : 'Issue'}
+                    {m === 'repo' ? t('common.repository') : t('common.issue')}
                   </button>
                 ))}
               </div>
@@ -370,11 +371,11 @@ export default function App() {
                 <div className="flex gap-3 text-sm">
                   <label className="flex items-center gap-1 cursor-pointer">
                     <input type="checkbox" checked={watchReleases} onChange={(e) => setWatchReleases(e.target.checked)} className="rounded" />
-                    <span>Releases</span>
+                    <span>{t('common.releases')}</span>
                   </label>
                   <label className="flex items-center gap-1 cursor-pointer">
                     <input type="checkbox" checked={watchTags} onChange={(e) => setWatchTags(e.target.checked)} className="rounded" />
-                    <span>Tags</span>
+                    <span>{t('common.tags')}</span>
                   </label>
                 </div>
               )}
@@ -399,10 +400,10 @@ export default function App() {
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
               >
                 <Plus size={16} />
-                Add watch
+                {t('popup.addWatch')}
               </button>
               <button onClick={handleOpenOptions} className="w-full text-xs text-gray-500 hover:text-brand-600">
-                Open full settings →
+                {t('popup.openFullSettings')}
               </button>
             </div>
           )}

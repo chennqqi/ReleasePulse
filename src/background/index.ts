@@ -9,12 +9,28 @@ import {
 } from '@/lib/storage'
 import type { IssueEvent, Subscription } from '@/types'
 import { migrateIfNeeded } from '@/lib/migrate'
+import { setLocale, detectLocale, type Locale } from '@/i18n'
+
+/** Initialize i18n locale from stored settings. */
+async function initLocale(): Promise<void> {
+  try {
+    const settings = await getSettings()
+    if (settings.language === 'auto' || !settings.language) {
+      setLocale(detectLocale())
+    } else {
+      setLocale(settings.language as Locale)
+    }
+  } catch {
+    setLocale(detectLocale())
+  }
+}
 
 /** Initialize the background service worker. */
 async function init(): Promise<void> {
   console.log('[ReleasePulse] Background service worker initializing')
 
   await migrateIfNeeded()
+  await initLocale()
   const settings = await getSettings()
   setupAlarm(settings.pollIntervalMinutes)
   setupNotificationHandler()

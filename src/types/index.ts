@@ -68,6 +68,8 @@ export interface Settings {
   lastSyncAt: string | null
   /** Remaining GitHub API requests in the current window. */
   apiRemaining: number | null
+  /** UI language override, or 'auto' to follow browser language. */
+  language: 'auto' | 'en' | 'zh-CN'
 }
 
 /** Default settings when none are stored. */
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: Settings = {
   onboardingCompleted: false,
   lastSyncAt: null,
   apiRemaining: null,
+  language: 'auto',
 }
 
 /** GitHub API: Release response (partial). */

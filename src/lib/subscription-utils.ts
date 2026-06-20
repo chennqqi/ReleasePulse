@@ -1,4 +1,5 @@
 import type { RepoWatch, Subscription, NotificationRecord } from '@/types'
+import { t } from '@/i18n'
 
 /** A repo-centric view combining RepoWatch and issue subscriptions. */
 export interface WatchingGroup {
@@ -79,34 +80,34 @@ export function groupNotificationsByTime(
   }
 
   const sections: NotificationTimeSection[] = []
-  if (today.length > 0) sections.push({ key: 'today', label: 'Today', items: today })
-  if (yesterday.length > 0) sections.push({ key: 'yesterday', label: 'Yesterday', items: yesterday })
-  if (earlier.length > 0) sections.push({ key: 'earlier', label: 'Earlier', items: earlier })
+  if (today.length > 0) sections.push({ key: 'today', label: t('common.today'), items: today })
+  if (yesterday.length > 0) sections.push({ key: 'yesterday', label: t('common.yesterday'), items: yesterday })
+  if (earlier.length > 0) sections.push({ key: 'earlier', label: t('common.earlier'), items: earlier })
   return sections
 }
 
 /** Format API remaining count for display. */
 export function formatApiRemaining(remaining: number | null, token: string): string {
-  if (remaining === null) return 'API: —'
+  if (remaining === null) return t('status.apiDash')
   const limit = token ? 5000 : 60
-  return `API: ${remaining}/${limit}`
+  return t('status.apiCount', { remaining, limit })
 }
 
 /** Format last sync time for the status bar. */
 export function formatSyncStatus(lastSyncAt: string | null): string {
-  if (!lastSyncAt) return 'Not synced yet'
+  if (!lastSyncAt) return t('status.notSynced')
   const diffMin = Math.floor((Date.now() - new Date(lastSyncAt).getTime()) / 60000)
-  if (diffMin < 1) return 'Synced just now'
-  if (diffMin < 60) return `Synced ${diffMin}m ago`
+  if (diffMin < 1) return t('status.syncedJustNow')
+  if (diffMin < 60) return t('status.syncedMinAgo', { min: diffMin })
   const diffHour = Math.floor(diffMin / 60)
-  if (diffHour < 24) return `Synced ${diffHour}h ago`
-  return `Synced ${new Date(lastSyncAt).toLocaleDateString()}`
+  if (diffHour < 24) return t('status.syncedHourAgo', { hour: diffHour })
+  return t('status.syncedDate', { date: new Date(lastSyncAt).toLocaleDateString() })
 }
 
 /** Describe active events on a repo watch. */
 export function describeWatchEvents(watch: RepoWatch): string {
   const parts: string[] = []
-  if (watch.events.releases) parts.push('Releases')
-  if (watch.events.tags) parts.push('Tags')
-  return parts.join(' · ') || 'No events'
+  if (watch.events.releases) parts.push(t('common.releases'))
+  if (watch.events.tags) parts.push(t('common.tags'))
+  return parts.join(' · ') || t('common.noEvents')
 }

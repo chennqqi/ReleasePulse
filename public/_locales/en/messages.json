@@ -1,0 +1,8 @@
+{
+  "manifest_name": {
+    "message": "ReleasePulse"
+  },
+  "manifest_description": {
+    "message": "Subscribe to software release notifications (GitHub releases, tags, issues)"
+  }
+}

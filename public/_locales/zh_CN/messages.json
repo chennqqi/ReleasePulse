@@ -1,0 +1,8 @@
+{
+  "manifest_name": {
+    "message": "ReleasePulse"
+  },
+  "manifest_description": {
+    "message": "订阅软件 Release 通知（GitHub releases、tags、issues）"
+  }
+}

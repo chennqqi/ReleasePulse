@@ -2,9 +2,10 @@ import { defineManifest } from '@crxjs/vite-plugin'
 
 export const manifest = defineManifest({
   manifest_version: 3,
-  name: 'ReleasePulse',
+  name: '__MSG_manifest_name__',
   version: '0.1.0',
-  description: 'Subscribe to software release notifications (GitHub releases, tags, issues)',
+  description: '__MSG_manifest_description__',
+  default_locale: 'en',
   permissions: ['storage', 'alarms', 'notifications', 'tabs'],
   host_permissions: ['https://api.github.com/*', 'https://github.com/*'],
   action: {

@@ -17,6 +17,13 @@ import {
   saveSettings,
   generateId,
 } from '@/lib/storage'
+import { setLocale, detectLocale, type Locale } from '@/i18n'
+
+/** Resolve the effective locale from a settings.language value. */
+function resolveLocale(language: Settings['language']): Locale {
+  if (language === 'auto' || !language) return detectLocale()
+  return language
+}
 
 interface AppStore {
   repoWatches: RepoWatch[]
@@ -52,6 +59,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     onboardingCompleted: false,
     lastSyncAt: null,
     apiRemaining: null,
+    language: 'auto',
   },
   loading: false,
 
@@ -63,6 +71,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       getNotifications(),
       getSettings(),
     ])
+    setLocale(resolveLocale(settings.language))
     set({ repoWatches, issueSubscriptions, notifications, settings, loading: false })
   },
 
@@ -156,6 +165,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   updateSettings: async (patch) => {
     const newSettings = { ...get().settings, ...patch }
     await saveSettings(newSettings)
+    if (patch.language) setLocale(resolveLocale(patch.language))
     set({ settings: newSettings })
     chrome.runtime.sendMessage({ type: 'UPDATE_ALARM' })
   },

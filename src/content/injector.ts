@@ -1,5 +1,6 @@
 import type { PageContext } from './index'
 import type { IssueEvent } from '@/types'
+import { t } from '@/i18n'
 
 interface RepoWatchStatus {
   releases: boolean
@@ -194,7 +195,7 @@ function showWatchPopover(
   `
 
   const title = document.createElement('p')
-  title.textContent = 'Watch with ReleasePulse'
+  title.textContent = t('content.watchWithReleasePulse')
   title.style.cssText = 'font-size: 12px; font-weight: 600; color: #24292f; margin: 0 0 8px;'
   popover.appendChild(title)
 
@@ -205,7 +206,7 @@ function showWatchPopover(
   releasesInput.checked = true
   releasesInput.disabled = status.releases
   releasesCheck.appendChild(releasesInput)
-  releasesCheck.appendChild(document.createTextNode(status.releases ? 'New Releases ✓' : 'New Releases'))
+  releasesCheck.appendChild(document.createTextNode(status.releases ? t('content.newReleasesChecked') : t('content.newReleases')))
   popover.appendChild(releasesCheck)
 
   const tagsCheck = document.createElement('label')
@@ -215,13 +216,13 @@ function showWatchPopover(
   tagsInput.checked = true
   tagsInput.disabled = status.tags
   tagsCheck.appendChild(tagsInput)
-  tagsCheck.appendChild(document.createTextNode(status.tags ? 'New Tags ✓' : 'New Tags'))
+  tagsCheck.appendChild(document.createTextNode(status.tags ? t('content.newTagsChecked') : t('content.newTags')))
   popover.appendChild(tagsCheck)
 
   const allWatching = status.releases && status.tags
 
   const applyBtn = document.createElement('button')
-  applyBtn.textContent = allWatching ? 'Watching' : 'Apply'
+  applyBtn.textContent = allWatching ? t('content.watching') : t('common.apply')
   applyBtn.disabled = allWatching
   applyBtn.style.cssText = `
     width: 100%;
@@ -243,7 +244,7 @@ function showWatchPopover(
       return
     }
     applyBtn.disabled = true
-    applyBtn.textContent = 'Applying...'
+    applyBtn.textContent = t('common.applying')
     const success = await addRepoWatch(owner, repo, wantReleases, wantTags)
     popover.remove()
     if (success) onDone()
@@ -287,7 +288,7 @@ async function injectRepoWatchButton(context: PageContext): Promise<void> {
   }
 
   const btn = createButton(
-    isWatching ? 'Watching' : 'Watch with ReleasePulse',
+    isWatching ? t('content.watching') : t('content.watchWithReleasePulse'),
     iconUrl,
     isWatching,
   )
@@ -317,23 +318,23 @@ async function injectIssueButton(context: PageContext): Promise<void> {
   container.style.cssText = 'display: inline-flex; margin-left: 8px; vertical-align: middle;'
 
   if (exists) {
-    container.appendChild(createButton('Subscribed', iconUrl, true))
+    container.appendChild(createButton(t('content.subscribed'), iconUrl, true))
     target.appendChild(container)
     return
   }
 
-  const btn = createButton('Subscribe Issue', iconUrl)
+  const btn = createButton(t('content.subscribeIssue'), iconUrl)
   btn.addEventListener('click', async (e) => {
     e.preventDefault()
     e.stopPropagation()
     btn.disabled = true
-    btn.textContent = 'Subscribing...'
+    btn.textContent = t('content.subscribing')
     const success = await addIssueSubscription(context.owner, context.repo, context.issueNumber!)
     if (success) {
-      container.replaceChildren(createButton('Subscribed', iconUrl, true))
+      container.replaceChildren(createButton(t('content.subscribed'), iconUrl, true))
     } else {
       btn.disabled = false
-      btn.textContent = 'Failed - Retry?'
+      btn.textContent = t('content.failedRetry')
     }
   })
   container.appendChild(btn)

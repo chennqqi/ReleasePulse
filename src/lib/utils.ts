@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import { t } from '@/i18n'
 
 /** Merge class names with clsx. */
 export function cn(...inputs: ClassValue[]): string {
@@ -7,7 +8,7 @@ export function cn(...inputs: ClassValue[]): string {
 
 /** Format ISO date string to a human-readable relative time. */
 export function formatRelativeTime(isoDate: string | null): string {
-  if (!isoDate) return 'Never'
+  if (!isoDate) return t('common.never')
   const date = new Date(isoDate)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -15,25 +16,16 @@ export function formatRelativeTime(isoDate: string | null): string {
   const diffHour = Math.floor(diffMin / 60)
   const diffDay = Math.floor(diffHour / 24)
 
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffHour < 24) return `${diffHour}h ago`
-  if (diffDay < 30) return `${diffDay}d ago`
+  if (diffMin < 1) return t('common.justNow')
+  if (diffMin < 60) return t('common.minAgo', { min: diffMin })
+  if (diffHour < 24) return t('common.hourAgo', { hour: diffHour })
+  if (diffDay < 30) return t('common.dayAgo', { day: diffDay })
   return date.toLocaleDateString()
 }
 
 /** Get the type badge label for a subscription type. */
 export function getTypeLabel(type: string): string {
-  switch (type) {
-    case 'github_release':
-      return 'Release'
-    case 'github_tag':
-      return 'Tag'
-    case 'github_issue':
-      return 'Issue'
-    default:
-      return type
-  }
+  return t(`type.${type}`)
 }
 
 /** Get the type badge color class for a subscription type. */
