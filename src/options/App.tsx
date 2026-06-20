@@ -5,7 +5,7 @@ import { formatRelativeTime, getTypeColor, getTypeLabel, cn } from '@/lib/utils'
 import type { SubscriptionType, IssueEvent } from '@/types'
 import {
   Bell, Plus, Trash2, RefreshCw, Key, Clock, Github,
-  ToggleLeft, ToggleRight, ExternalLink,
+  ToggleLeft, ToggleRight, ExternalLink, Sparkles, ArrowRight, MousePointerClick,
 } from 'lucide-react'
 
 /** Options page - manage subscriptions and settings. */
@@ -89,6 +89,51 @@ export default function App() {
       </div>
 
       <div className="max-w-3xl mx-auto p-6 space-y-6">
+        {/* First-time onboarding banner */}
+        {subscriptions.length === 0 && (
+          <section className="bg-gradient-to-br from-brand-50 to-blue-50 rounded-lg border border-brand-200 p-5">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center shrink-0">
+                <Sparkles size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Welcome to ReleasePulse!</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Subscribe to GitHub repos and get notified about new releases, tags, and issue updates.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+              <div className="flex items-start gap-2 bg-white rounded-lg p-3 border border-gray-200">
+                <MousePointerClick size={18} className="text-brand-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Subscribe on GitHub</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Visit any GitHub repo and click the <span className="font-medium text-brand-600">Subscribe</span> button.
+                  </p>
+                  <a
+                    href="https://github.com/trending"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1"
+                  >
+                    Browse GitHub <ArrowRight size={12} />
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 bg-white rounded-lg p-3 border border-gray-200">
+                <Plus size={18} className="text-brand-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Add manually below</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Enter a repo URL or <code className="text-xs bg-gray-100 px-1 rounded">owner/repo</code> in the form below.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Add Subscription */}
         <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

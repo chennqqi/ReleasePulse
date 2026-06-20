@@ -1,14 +1,14 @@
 import { parseGithubUrl } from '@/lib/github-api'
 import type { SubscriptionType } from '@/types'
-import { injectSubscribeButtons } from './injector'
+import { injectSubscribeButtons, injectRepoRootButtonsWrapper } from './injector'
 
-/** Determine the page type from the current URL. */
-function getPageType(url: string): SubscriptionType | null {
+/** Determine the page type from the current URL. Returns null for unsupported pages. */
+function getPageType(url: string): SubscriptionType | 'repo_root' | null {
   if (/\/issues\/\d+/.test(url)) return 'github_issue'
   if (/\/releases/.test(url)) return 'github_release'
   if (/\/tags/.test(url)) return 'github_tag'
-  // Repo root also supports release/tag subscription
-  if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/.test(url)) return 'github_release'
+  // Repo root - support both release and tag subscription
+  if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/.test(url)) return 'repo_root'
   return null
 }
 
@@ -22,13 +22,17 @@ function init(): void {
   if (!pageType) return
 
   const context: PageContext = {
-    type: pageType,
+    type: pageType === 'repo_root' ? 'github_release' : pageType,
     owner: parsed.owner,
     repo: parsed.repo,
     issueNumber: parsed.issueNumber,
   }
 
-  injectSubscribeButtons(context)
+  if (pageType === 'repo_root') {
+    injectRepoRootButtonsWrapper(context)
+  } else {
+    injectSubscribeButtons(context)
+  }
 }
 
 /** Context describing the current GitHub page. */

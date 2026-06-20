@@ -35,10 +35,14 @@ async function addSubscription(
   })
 }
 
+/** Get the extension icon URL. */
+function getIconUrl(): string {
+  return chrome.runtime.getURL('src/assets/icon-16.png')
+}
+
 /** Create a styled subscribe button. */
 function createButton(label: string, iconUrl: string): HTMLButtonElement {
   const btn = document.createElement('button')
-  btn.className = 'btn'
   btn.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -60,9 +64,8 @@ function createButton(label: string, iconUrl: string): HTMLButtonElement {
 }
 
 /** Create a subscribed (active) state button. */
-function createSubscribedButton(iconUrl: string): HTMLButtonElement {
+function createSubscribedButton(iconUrl: string, label: string): HTMLButtonElement {
   const btn = document.createElement('button')
-  btn.className = 'btn'
   btn.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -78,76 +81,8 @@ function createSubscribedButton(iconUrl: string): HTMLButtonElement {
     cursor: default;
     white-space: nowrap;
   `
-  btn.innerHTML = `<img src="${iconUrl}" width="14" height="14" alt="ReleasePulse" style="vertical-align: middle;" /> Subscribed`
+  btn.innerHTML = `<img src="${iconUrl}" width="14" height="14" alt="ReleasePulse" style="vertical-align: middle;" /> ${label}`
   return btn
-}
-
-/** Get the extension icon URL. */
-function getIconUrl(): string {
-  return chrome.runtime.getURL('src/assets/icon-16.png')
-}
-
-/** Inject a single subscribe button into a target element. */
-async function injectButton(
-  target: Element,
-  context: PageContext,
-): Promise<void> {
-  if (target.querySelector('.release-pulse-btn')) return
-
-  const iconUrl = getIconUrl()
-  const exists = await checkExisting(
-    context.type,
-    context.owner,
-    context.repo,
-    context.issueNumber,
-  )
-
-  const container = document.createElement('div')
-  container.className = 'release-pulse-btn'
-  container.style.cssText = 'display: inline-flex; margin-left: 8px;'
-
-  if (exists) {
-    container.appendChild(createSubscribedButton(iconUrl))
-  } else {
-    const label = getButtonLabel(context.type)
-    const btn = createButton(label, iconUrl)
-    btn.addEventListener('mouseenter', () => {
-      btn.style.background = '#f3f4f6'
-      btn.style.borderColor = '#afb8c1'
-    })
-    btn.addEventListener('mouseleave', () => {
-      btn.style.background = '#f6f8fa'
-      btn.style.borderColor = '#d0d7de'
-    })
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      btn.disabled = true
-      btn.textContent = 'Subscribing...'
-
-      const issueEvents: IssueEvent[] | undefined = context.type === 'github_issue'
-        ? ['closed', 'reopened']
-        : undefined
-
-      const success = await addSubscription(
-        context.type,
-        context.owner,
-        context.repo,
-        context.issueNumber,
-        issueEvents,
-      )
-
-      if (success) {
-        container.replaceChildren(createSubscribedButton(iconUrl))
-      } else {
-        btn.disabled = false
-        btn.textContent = 'Failed - Retry?'
-      }
-    })
-    container.appendChild(btn)
-  }
-
-  target.appendChild(container)
 }
 
 /** Get button label based on subscription type. */
@@ -164,58 +99,201 @@ function getButtonLabel(type: SubscriptionType): string {
   }
 }
 
+/** Create a container with a subscribe button for the given context. */
+async function createSubscribeButton(context: PageContext): Promise<HTMLElement> {
+  const iconUrl = getIconUrl()
+  const label = getButtonLabel(context.type)
+  const exists = await checkExisting(
+    context.type,
+    context.owner,
+    context.repo,
+    context.issueNumber,
+  )
+
+  const container = document.createElement('div')
+  container.className = 'release-pulse-btn'
+  container.style.cssText = 'display: inline-flex; margin-left: 8px; vertical-align: middle;'
+
+  if (exists) {
+    container.appendChild(createSubscribedButton(iconUrl, label))
+    return container
+  }
+
+  const btn = createButton(label, iconUrl)
+  btn.addEventListener('mouseenter', () => {
+    btn.style.background = '#f3f4f6'
+    btn.style.borderColor = '#afb8c1'
+  })
+  btn.addEventListener('mouseleave', () => {
+    btn.style.background = '#f6f8fa'
+    btn.style.borderColor = '#d0d7de'
+  })
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    btn.disabled = true
+    btn.textContent = 'Subscribing...'
+
+    const issueEvents: IssueEvent[] | undefined = context.type === 'github_issue'
+      ? ['closed', 'reopened']
+      : undefined
+
+    const success = await addSubscription(
+      context.type,
+      context.owner,
+      context.repo,
+      context.issueNumber,
+      issueEvents,
+    )
+
+    if (success) {
+      container.replaceChildren(createSubscribedButton(iconUrl, label))
+    } else {
+      btn.disabled = false
+      btn.textContent = 'Failed - Retry?'
+    }
+  })
+  container.appendChild(btn)
+  return container
+}
+
+/** Try multiple selectors to find a suitable injection target. Returns null if none found. */
+function findInjectionTarget(selectors: string[]): Element | null {
+  for (const selector of selectors) {
+    const el = document.querySelector(selector)
+    if (el) return el
+  }
+  return null
+}
+
+/** Wait for an element to appear in the DOM, with timeout. */
+async function waitForElement(selectors: string[], timeoutMs = 3000): Promise<Element | null> {
+  const existing = findInjectionTarget(selectors)
+  if (existing) return existing
+
+  return new Promise((resolve) => {
+    const observer = new MutationObserver(() => {
+      const el = findInjectionTarget(selectors)
+      if (el) {
+        observer.disconnect()
+        resolve(el)
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    setTimeout(() => {
+      observer.disconnect()
+      resolve(null)
+    }, timeoutMs)
+  })
+}
+
+/** Inject button(s) into a target element, checking for duplicates. */
+async function injectInto(
+  target: Element,
+  context: PageContext,
+): Promise<void> {
+  if (target.querySelector('.release-pulse-btn')) return
+  const btn = await createSubscribeButton(context)
+  target.appendChild(btn)
+}
+
+/** Inject issue subscribe button on issue pages. */
+async function injectIssueButton(context: PageContext): Promise<void> {
+  if (!context.issueNumber) return
+
+  const selectors = [
+    '.gh-header-actions',
+    '.gh-header .d-flex',
+    '#partial-discussion-header .gh-header-meta',
+    '.js-issues-toolbar',
+  ]
+
+  const target = await waitForElement(selectors, 3000)
+  if (target) {
+    await injectInto(target, context)
+  }
+}
+
+/** Inject release subscribe button on releases/repo pages. */
+async function injectReleaseButton(context: PageContext): Promise<void> {
+  const selectors = [
+    '.pagehead-actions',
+    '.repohead-actions',
+    '[data-pjax="#repo-content-pjax-container"] .d-flex',
+    '.Layout-sidebar .Border',
+    '#repo-content-pjax-container .d-flex',
+  ]
+
+  const target = await waitForElement(selectors, 3000)
+  if (target) {
+    await injectInto(target, context)
+  }
+}
+
+/** Inject tag subscribe button on tags pages. */
+async function injectTagButton(context: PageContext): Promise<void> {
+  const selectors = [
+    '.pagehead-actions',
+    '.repohead-actions',
+    '[data-pjax="#repo-content-pjax-container"] .d-flex',
+    '.Layout-sidebar .Border',
+    '#repo-content-pjax-container .d-flex',
+  ]
+
+  const target = await waitForElement(selectors, 3000)
+  if (target) {
+    await injectInto(target, context)
+  }
+}
+
+/** Inject both release and tag buttons on repo root page. */
+async function injectRepoRootButtons(context: PageContext): Promise<void> {
+  const selectors = [
+    '.pagehead-actions',
+    '.repohead-actions',
+    '.Layout-sidebar .Border',
+  ]
+
+  const target = await waitForElement(selectors, 3000)
+  if (!target) return
+
+  if (!target.querySelector('.release-pulse-btn-release')) {
+    const releaseContext: PageContext = { ...context, type: 'github_release' }
+    const releaseBtn = await createSubscribeButton(releaseContext)
+    releaseBtn.classList.add('release-pulse-btn-release')
+    target.appendChild(releaseBtn)
+  }
+
+  if (!target.querySelector('.release-pulse-btn-tag')) {
+    const tagContext: PageContext = { ...context, type: 'github_tag' }
+    const tagBtn = await createSubscribeButton(tagContext)
+    tagBtn.classList.add('release-pulse-btn-tag')
+    target.appendChild(tagBtn)
+  }
+}
+
 /** Find injection targets and add buttons based on page type. */
 export async function injectSubscribeButtons(context: PageContext): Promise<void> {
   // Remove any existing buttons first (for SPA navigation)
   document.querySelectorAll('.release-pulse-btn').forEach((el) => el.remove())
 
-  if (context.type === 'github_issue' && context.issueNumber) {
-    // Inject on issue page - next to the issue title actions
-    const issueActions = document.querySelector('.gh-header-actions')
-    if (issueActions) {
-      await injectButton(issueActions, context)
-      return
-    }
-    // Fallback: inject near issue title
-    const titleRow = document.querySelector('.js-issue-title')
-    if (titleRow?.parentElement) {
-      await injectButton(titleRow.parentElement, context)
-    }
-    return
+  switch (context.type) {
+    case 'github_issue':
+      await injectIssueButton(context)
+      break
+    case 'github_release':
+      await injectReleaseButton(context)
+      break
+    case 'github_tag':
+      await injectTagButton(context)
+      break
+    default:
+      break
   }
+}
 
-  if (context.type === 'github_release') {
-    // Releases page: inject next to "Draft a new release" button or in the sidebar
-    const releaseHeader = document.querySelector('[data-pjax="#repo-content-pjax-container"] .d-flex')
-    if (releaseHeader) {
-      await injectButton(releaseHeader, context)
-      return
-    }
-    // Repo root: inject in the repo action bar
-    const repoActions = document.querySelector('.pagehead-actions')
-    if (repoActions) {
-      await injectButton(repoActions, context)
-      return
-    }
-    // Fallback: sidebar
-    const sidebar = document.querySelector('.Layout-sidebar')
-    if (sidebar) {
-      await injectButton(sidebar, context)
-    }
-    return
-  }
-
-  if (context.type === 'github_tag') {
-    // Tags page: similar to releases
-    const tagHeader = document.querySelector('[data-pjax="#repo-content-pjax-container"] .d-flex')
-    if (tagHeader) {
-      await injectButton(tagHeader, context)
-      return
-    }
-    const sidebar = document.querySelector('.Layout-sidebar')
-    if (sidebar) {
-      await injectButton(sidebar, context)
-    }
-    return
-  }
+/** Inject both release and tag buttons on repo root page. */
+export async function injectRepoRootButtonsWrapper(context: PageContext): Promise<void> {
+  document.querySelectorAll('.release-pulse-btn').forEach((el) => el.remove())
+  await injectRepoRootButtons(context)
 }
